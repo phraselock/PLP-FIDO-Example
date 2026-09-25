@@ -36,13 +36,18 @@ BEGIN_MESSAGE_MAP(CPLPFidoExampleDlg, CDialogEx)
   ON_BN_CLICKED(IDC_BTN_CLEAR, &CPLPFidoExampleDlg::OnBnClickedClear)
   ON_MESSAGE(WM_APP_LOG, &CPLPFidoExampleDlg::OnAppLog)
   ON_MESSAGE(WM_APP_DONE, &CPLPFidoExampleDlg::OnAppDone)
+  ON_WM_GETMINMAXINFO()
 END_MESSAGE_MAP()
 
 BOOL CPLPFidoExampleDlg::OnInitDialog()
 {
   CDialogEx::OnInitDialog();
 
-  m_logFont.CreatePointFont(90, _T("Consolas"));
+  CRect rc;
+  GetWindowRect(&rc);
+  m_minSize = rc.Size();
+
+  m_logFont.CreatePointFont(100, _T("Consolas"));
   m_editLog.SetFont(&m_logFont);
   m_editLog.SetLimitText(0);
 
@@ -114,6 +119,15 @@ void CPLPFidoExampleDlg::OnBnClickedSignIn()
 void CPLPFidoExampleDlg::OnBnClickedClear()
 {
   m_editLog.SetWindowText(_T(""));
+}
+
+void CPLPFidoExampleDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
+{
+  CDialogEx::OnGetMinMaxInfo(lpMMI);
+  if (m_minSize.cx > 0) {
+    lpMMI->ptMinTrackSize.x = m_minSize.cx;
+    lpMMI->ptMinTrackSize.y = m_minSize.cy;
+  }
 }
 
 LRESULT CPLPFidoExampleDlg::OnAppLog(WPARAM, LPARAM lParam)

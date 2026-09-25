@@ -64,33 +64,65 @@ END
 // Dialog
 //
 
-IDD_PLPFIDOEXAMPLE_DIALOG DIALOGEX 0, 0, 340, 290
-STYLE DS_SETFONT | DS_FIXEDSYS | DS_MODALFRAME | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+IDD_PLPFIDOEXAMPLE_DIALOG DIALOGEX 0, 0, 440, 330
+STYLE DS_SETFONT | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "PLP FIDO Example (libfido2)"
-FONT 8, "MS Shell Dlg", 0, 0, 0x1
+FONT 10, "Segoe UI", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Authenticator",IDC_STATIC,7,7,326,100
-    LTEXT           "Device:",IDC_STATIC,14,22,40,8
-    COMBOBOX        IDC_COMBO_DEVICE,58,20,210,120,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Refresh",IDC_BTN_REFRESH,274,19,52,14
-    LTEXT           "RP ID:",IDC_STATIC,14,40,40,8
-    EDITTEXT        IDC_EDIT_RPID,58,37,120,14,ES_AUTOHSCROLL
-    LTEXT           "User:",IDC_STATIC,188,40,24,8
-    EDITTEXT        IDC_EDIT_USER,214,37,112,14,ES_AUTOHSCROLL
-    LTEXT           "PIN:",IDC_STATIC,14,58,40,8
-    EDITTEXT        IDC_EDIT_PIN,58,55,80,14,ES_PASSWORD | ES_AUTOHSCROLL
-    LTEXT           "(optional, USB keys only - Windows Hello asks itself)",IDC_STATIC,144,58,182,8
+    GROUPBOX        "Authenticator",IDC_STATIC,7,7,426,110
+    LTEXT           "Device:",IDC_STATIC,16,24,44,10
+    COMBOBOX        IDC_COMBO_DEVICE,64,21,300,160,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Refresh",IDC_BTN_REFRESH,370,20,56,16
+    LTEXT           "RP ID:",IDC_STATIC,16,44,44,10
+    EDITTEXT        IDC_EDIT_RPID,64,41,150,15,ES_AUTOHSCROLL
+    LTEXT           "User:",IDC_STATIC,226,44,30,10
+    EDITTEXT        IDC_EDIT_USER,260,41,166,15,ES_AUTOHSCROLL
+    LTEXT           "PIN:",IDC_STATIC,16,63,44,10
+    EDITTEXT        IDC_EDIT_PIN,64,60,90,15,ES_PASSWORD | ES_AUTOHSCROLL
+    LTEXT           "(optional, USB keys only - Windows Hello asks itself)",IDC_STATIC,162,63,264,10
     CONTROL         "Discoverable credential (passkey / resident key)",IDC_CHECK_RK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,58,75,200,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,64,82,340,12
     CONTROL         "windows://hello: security keys only (no Windows Hello)",IDC_CHECK_ROAMING,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,58,89,260,10
-    PUSHBUTTON      "Device Info",IDC_BTN_INFO,7,114,60,16
-    PUSHBUTTON      "Register",IDC_BTN_REGISTER,71,114,60,16
-    PUSHBUTTON      "Sign In",IDC_BTN_SIGNIN,135,114,60,16
-    PUSHBUTTON      "Clear Log",IDC_BTN_CLEAR,199,114,60,16
-    PUSHBUTTON      "Close",IDCANCEL,273,114,60,16
-    EDITTEXT        IDC_EDIT_LOG,7,136,326,147,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,64,98,340,12
+    PUSHBUTTON      "Device Info",IDC_BTN_INFO,7,124,76,20
+    PUSHBUTTON      "Register",IDC_BTN_REGISTER,89,124,76,20
+    PUSHBUTTON      "Sign In",IDC_BTN_SIGNIN,171,124,76,20
+    PUSHBUTTON      "Clear Log",IDC_BTN_CLEAR,253,124,76,20
+    PUSHBUTTON      "Close",IDCANCEL,357,124,76,20
+    EDITTEXT        IDC_EDIT_LOG,7,151,426,172,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+// One line per control in dialog template order: moveX, moveY, sizeX, sizeY (percent of resize delta)
+//
+
+IDD_PLPFIDOEXAMPLE_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    0, 0, 100, 0,       // GROUPBOX Authenticator
+    0, 0, 0, 0,         // "Device:"
+    0, 0, 100, 0,       // IDC_COMBO_DEVICE
+    100, 0, 0, 0,       // IDC_BTN_REFRESH
+    0, 0, 0, 0,         // "RP ID:"
+    0, 0, 50, 0,        // IDC_EDIT_RPID
+    50, 0, 0, 0,        // "User:"
+    50, 0, 50, 0,       // IDC_EDIT_USER
+    0, 0, 0, 0,         // "PIN:"
+    0, 0, 0, 0,         // IDC_EDIT_PIN
+    0, 0, 100, 0,       // PIN hint
+    0, 0, 0, 0,         // IDC_CHECK_RK
+    0, 0, 0, 0,         // IDC_CHECK_ROAMING
+    0, 0, 0, 0,         // IDC_BTN_INFO
+    0, 0, 0, 0,         // IDC_BTN_REGISTER
+    0, 0, 0, 0,         // IDC_BTN_SIGNIN
+    0, 0, 0, 0,         // IDC_BTN_CLEAR
+    100, 0, 0, 0,       // IDCANCEL (Close)
+    0, 0, 100, 100      // IDC_EDIT_LOG
 END
 
 

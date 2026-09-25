@@ -26,6 +26,7 @@ protected:
   afx_msg void OnBnClickedClear();
   afx_msg LRESULT OnAppLog(WPARAM wParam, LPARAM lParam);
   afx_msg LRESULT OnAppDone(WPARAM wParam, LPARAM lParam);
+  afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
   DECLARE_MESSAGE_MAP()
 
 private:
@@ -50,6 +51,7 @@ private:
   BOOL m_discoverable = FALSE;
   BOOL m_roamingOnly = TRUE;
   CFont m_logFont;
+  CSize m_minSize;  // initial window size = minimum when resizing
 
   std::vector<FidoDevice> m_devices;
   FidoDemo m_fido;
