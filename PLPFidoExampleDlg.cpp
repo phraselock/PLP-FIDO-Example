@@ -26,6 +26,7 @@ void CPLPFidoExampleDlg::DoDataExchange(CDataExchange* pDX)
   DDX_Text(pDX, IDC_EDIT_PIN, m_pin);
   DDX_Check(pDX, IDC_CHECK_RK, m_discoverable);
   DDX_Check(pDX, IDC_CHECK_ROAMING, m_roamingOnly);
+  DDX_Check(pDX, IDC_CHECK_UV, m_requireUv);
 }
 
 BEGIN_MESSAGE_MAP(CPLPFidoExampleDlg, CDialogEx)
@@ -34,6 +35,8 @@ BEGIN_MESSAGE_MAP(CPLPFidoExampleDlg, CDialogEx)
   ON_BN_CLICKED(IDC_BTN_REGISTER, &CPLPFidoExampleDlg::OnBnClickedRegister)
   ON_BN_CLICKED(IDC_BTN_SIGNIN, &CPLPFidoExampleDlg::OnBnClickedSignIn)
   ON_BN_CLICKED(IDC_BTN_CLEAR, &CPLPFidoExampleDlg::OnBnClickedClear)
+  ON_CBN_SELCHANGE(IDC_COMBO_DEVICE, &CPLPFidoExampleDlg::OnCbnSelchangeDevice)
+  ON_BN_CLICKED(IDC_CHECK_UV, &CPLPFidoExampleDlg::OnBnClickedRequireUv)
   ON_MESSAGE(WM_APP_LOG, &CPLPFidoExampleDlg::OnAppLog)
   ON_MESSAGE(WM_APP_DONE, &CPLPFidoExampleDlg::OnAppDone)
   ON_WM_GETMINMAXINFO()
@@ -79,6 +82,7 @@ void CPLPFidoExampleDlg::OnBnClickedRefresh()
     m_comboDevice.AddString(CString(CA2W(d.label.c_str(), CP_UTF8)));
   if (!m_devices.empty())
     m_comboDevice.SetCurSel(0);
+  UpdatePinField();
 }
 
 void CPLPFidoExampleDlg::OnBnClickedInfo()
@@ -98,8 +102,9 @@ void CPLPFidoExampleDlg::OnBnClickedRegister()
   std::string pin = ToUtf8(m_pin);
   bool rk = m_discoverable != FALSE;
   bool roaming = m_roamingOnly != FALSE;
-  RunAsync([this, path, rpId, user, pin, rk, roaming](const FidoDemo::LogFn& log) {
-    m_fido.Register(path, rpId, user, pin, rk, roaming, log);
+  bool uv = m_requireUv != FALSE;
+  RunAsync([this, path, rpId, user, pin, rk, roaming, uv](const FidoDemo::LogFn& log) {
+    m_fido.Register(path, rpId, user, pin, rk, roaming, uv, log);
   });
 }
 
@@ -111,14 +116,33 @@ void CPLPFidoExampleDlg::OnBnClickedSignIn()
   std::string pin = ToUtf8(m_pin);
   bool rk = m_discoverable != FALSE;
   bool roaming = m_roamingOnly != FALSE;
-  RunAsync([this, path, rpId, pin, rk, roaming](const FidoDemo::LogFn& log) {
-    m_fido.SignIn(path, rpId, pin, rk, roaming, log);
+  bool uv = m_requireUv != FALSE;
+  RunAsync([this, path, rpId, pin, rk, roaming, uv](const FidoDemo::LogFn& log) {
+    m_fido.SignIn(path, rpId, pin, rk, roaming, uv, log);
   });
 }
 
 void CPLPFidoExampleDlg::OnBnClickedClear()
 {
   m_editLog.SetWindowText(_T(""));
+}
+
+void CPLPFidoExampleDlg::OnCbnSelchangeDevice()
+{
+  UpdatePinField();
+}
+
+void CPLPFidoExampleDlg::OnBnClickedRequireUv()
+{
+  UpdatePinField();
+}
+
+// The PIN field is only used for direct HID access with user verification required
+void CPLPFidoExampleDlg::UpdatePinField()
+{
+  std::string path = SelectedDevicePath();
+  bool enable = IsDlgButtonChecked(IDC_CHECK_UV) == BST_CHECKED && !path.empty() && path != "windows://hello";
+  GetDlgItem(IDC_EDIT_PIN)->EnableWindow(enable);
 }
 
 void CPLPFidoExampleDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)

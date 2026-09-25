@@ -55,6 +55,11 @@ namespace
   {
     return roamingOnly ? WEBAUTHN_AUTHENTICATOR_ATTACHMENT_CROSS_PLATFORM : WEBAUTHN_AUTHENTICATOR_ATTACHMENT_ANY;
   }
+
+  DWORD UserVerification(bool requireUv)
+  {
+    return requireUv ? WEBAUTHN_USER_VERIFICATION_REQUIREMENT_REQUIRED : WEBAUTHN_USER_VERIFICATION_REQUIREMENT_DISCOURAGED;
+  }
 }
 
 uint32_t WinWebAuthn::ApiVersion()
@@ -77,7 +82,7 @@ std::string WinWebAuthn::TransportName(uint32_t transport)
 
 bool WinWebAuthn::MakeCredential(const std::string& rpId, const std::string& rpName, const std::vector<uint8_t>& userId,
   const std::string& userName, const std::string& clientDataJson, bool discoverable, bool roamingOnly,
-  Attestation& out, std::string& error)
+  bool requireUv, Attestation& out, std::string& error)
 {
   std::wstring wRpId = ToWide(rpId);
   std::wstring wRpName = ToWide(rpName);
@@ -117,7 +122,7 @@ bool WinWebAuthn::MakeCredential(const std::string& rpId, const std::string& rpN
   opt.dwTimeoutMilliseconds = TIMEOUT_MS;
   opt.dwAuthenticatorAttachment = Attachment(roamingOnly);
   opt.bRequireResidentKey = discoverable;
-  opt.dwUserVerificationRequirement = WEBAUTHN_USER_VERIFICATION_REQUIREMENT_PREFERRED;
+  opt.dwUserVerificationRequirement = UserVerification(requireUv);
   opt.dwAttestationConveyancePreference = WEBAUTHN_ATTESTATION_CONVEYANCE_PREFERENCE_DIRECT;
 
   PWEBAUTHN_CREDENTIAL_ATTESTATION att = nullptr;
@@ -137,7 +142,7 @@ bool WinWebAuthn::MakeCredential(const std::string& rpId, const std::string& rpN
 }
 
 bool WinWebAuthn::GetAssertion(const std::string& rpId, const std::string& clientDataJson,
-  const std::vector<std::vector<uint8_t>>& allowList, bool roamingOnly, Assertion& out, std::string& error)
+  const std::vector<std::vector<uint8_t>>& allowList, bool roamingOnly, bool requireUv, Assertion& out, std::string& error)
 {
   std::wstring wRpId = ToWide(rpId);
   std::vector<BYTE> cd(clientDataJson.begin(), clientDataJson.end());
@@ -164,7 +169,7 @@ bool WinWebAuthn::GetAssertion(const std::string& rpId, const std::string& clien
   opt.CredentialList.cCredentials = static_cast<DWORD>(creds.size());
   opt.CredentialList.pCredentials = creds.empty() ? nullptr : creds.data();
   opt.dwAuthenticatorAttachment = Attachment(roamingOnly);
-  opt.dwUserVerificationRequirement = WEBAUTHN_USER_VERIFICATION_REQUIREMENT_PREFERRED;
+  opt.dwUserVerificationRequirement = UserVerification(requireUv);
 
   PWEBAUTHN_ASSERTION assertion = nullptr;
   HRESULT hr = WebAuthNAuthenticatorGetAssertion(OwnerWindow(), wRpId.c_str(), &clientData, &opt, &assertion);

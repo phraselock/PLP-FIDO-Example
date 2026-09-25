@@ -41,13 +41,17 @@ The first build takes a few minutes because OpenSSL is compiled from source.
 6. **windows://hello: security keys only** (default on): Windows shows only the security key
    dialog (USB / NFC / BLE), no Windows Hello. Unticked, libfido2's own Windows Hello backend is
    used and Windows offers both.
+7. **Require PIN (user verification)**: ticked = `uv` required (PIN / biometrics), and the
+   signature check additionally demands the UV flag - as a relying party would. Unticked = touch only
+   (`discouraged`). Some keys still ask for the PIN when creating a discoverable credential.
 
 ## Windows specifics
 
 - Since Windows 10 1903, **non-elevated processes cannot talk to FIDO HID devices directly**.
   Raw HID devices appear in the list but `fido_dev_open`/transactions fail unless the app is
   run as Administrator. Use `windows://hello` otherwise.
-- With `windows://hello` the PIN field is ignored - Windows collects PIN/biometrics itself.
+- The PIN field is only used for direct HID access with *Require PIN* ticked (it is disabled
+  otherwise). With `windows://hello` Windows collects PIN/biometrics in its own dialog.
 - libfido2's Windows Hello backend always requests `WEBAUTHN_AUTHENTICATOR_ATTACHMENT_ANY` and
   has no option to change that. For *security keys only* the app therefore calls `webauthn.dll`
   directly (`WinWebAuthn.cpp`, `WEBAUTHN_AUTHENTICATOR_ATTACHMENT_CROSS_PLATFORM`) and hands the raw

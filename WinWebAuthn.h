@@ -34,11 +34,12 @@ namespace WinWebAuthn
   std::string TransportName(uint32_t transport);
 
   // roamingOnly=true -> WEBAUTHN_AUTHENTICATOR_ATTACHMENT_CROSS_PLATFORM (no Windows Hello)
+  // requireUv=true -> WEBAUTHN_USER_VERIFICATION_REQUIREMENT_REQUIRED (PIN / biometrics), else DISCOURAGED
   bool MakeCredential(const std::string& rpId, const std::string& rpName, const std::vector<uint8_t>& userId,
     const std::string& userName, const std::string& clientDataJson, bool discoverable, bool roamingOnly,
-    Attestation& out, std::string& error);
+    bool requireUv, Attestation& out, std::string& error);
 
   // An empty allowList requests a discoverable credential
   bool GetAssertion(const std::string& rpId, const std::string& clientDataJson,
-    const std::vector<std::vector<uint8_t>>& allowList, bool roamingOnly, Assertion& out, std::string& error);
+    const std::vector<std::vector<uint8_t>>& allowList, bool roamingOnly, bool requireUv, Assertion& out, std::string& error);
 }

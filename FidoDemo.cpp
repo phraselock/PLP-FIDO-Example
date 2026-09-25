@@ -118,12 +118,40 @@ namespace
     return dev;
   }
 
-  // Windows Hello collects PIN / biometrics in its own UI - never pass a PIN there
-  const char* PinFor(fido_dev_t* dev, const std::string& pin)
+  // The PIN is only passed when user verification is required and we talk HID directly.
+  // Windows Hello collects PIN / biometrics in its own UI - never pass a PIN there.
+  const char* PinFor(fido_dev_t* dev, const std::string& pin, bool requireUv)
   {
-    if (fido_dev_is_winhello(dev) || pin.empty())
+    if (!requireUv || fido_dev_is_winhello(dev) || pin.empty())
       return nullptr;
     return pin.c_str();
+  }
+
+  // requireUv -> uv=true (PIN / biometrics required). Otherwise touch only: libfido2's winhello backend
+  // needs an explicit uv=false for WEBAUTHN_USER_VERIFICATION_REQUIREMENT_DISCOURAGED, raw HID keys
+  // get no uv option at all (CTAP 2.1: platforms should not send uv=false)
+  fido_opt_t UvOption(bool requireUv, const std::string& path)
+  {
+    if (requireUv)
+      return FIDO_OPT_TRUE;
+    return path == WINHELLO_PATH ? FIDO_OPT_FALSE : FIDO_OPT_OMIT;
+  }
+
+  // authenticatorData flags: UP = user present (touch), UV = user verified (PIN / biometrics)
+  std::string FlagsText(uint8_t flags)
+  {
+    char buf[64];
+    snprintf(buf, sizeof(buf), "0x%02x (UP: %s, UV: %s)", flags,
+      (flags & 0x01) ? "yes" : "no", (flags & 0x04) ? "yes" : "no");
+    return buf;
+  }
+
+  void LogPinHint(int r, bool requireUv, const std::string& pin, const FidoDemo::LogFn& log)
+  {
+    if (r == FIDO_ERR_PIN_REQUIRED)
+      log("  Hint: the key has a PIN set - tick 'Require PIN' and enter it in the PIN field.");
+    else if (requireUv && pin.empty() && (r == FIDO_ERR_UNSUPPORTED_OPTION || r == FIDO_ERR_PIN_NOT_SET))
+      log("  Hint: user verification required - enter the key's PIN in the PIN field.");
   }
 }
 
@@ -238,9 +266,10 @@ bool FidoDemo::DeviceInfo(const std::string& path, const LogFn& log)
 }
 
 bool FidoDemo::Register(const std::string& path, const std::string& rpId, const std::string& userName,
-  const std::string& pin, bool discoverable, bool roamingOnly, const LogFn& log)
+  const std::string& pin, bool discoverable, bool roamingOnly, bool requireUv, const LogFn& log)
 {
   log("=== Register (makeCredential) ===");
+  log(std::string("  user verification: ") + (requireUv ? "required (PIN)" : "discouraged (touch only)"));
   if (rpId.empty() || userName.empty()) {
     log("ERROR: RP ID and user name are required");
     return false;
@@ -265,7 +294,8 @@ bool FidoDemo::Register(const std::string& path, const std::string& rpId, const 
     (r = fido_cred_set_clientdata(cred.get(), reinterpret_cast<const unsigned char*>(clientData.data()), clientData.size())) != FIDO_OK ||
     (r = fido_cred_set_rp(cred.get(), rpId.c_str(), RP_NAME)) != FIDO_OK ||
     (r = fido_cred_set_user(cred.get(), userId.data(), userId.size(), userName.c_str(), userName.c_str(), nullptr)) != FIDO_OK ||
-    (r = fido_cred_set_rk(cred.get(), discoverable ? FIDO_OPT_TRUE : FIDO_OPT_OMIT)) != FIDO_OK) {
+    (r = fido_cred_set_rk(cred.get(), discoverable ? FIDO_OPT_TRUE : FIDO_OPT_OMIT)) != FIDO_OK ||
+    (r = fido_cred_set_uv(cred.get(), UvOption(requireUv, path))) != FIDO_OK) {
     log("ERROR: setting up credential: " + Err(r));
     return false;
   }
@@ -275,7 +305,7 @@ bool FidoDemo::Register(const std::string& path, const std::string& rpId, const 
     log(">>> Insert / touch your security key ...");
     WinWebAuthn::Attestation att;
     std::string error;
-    if (!WinWebAuthn::MakeCredential(rpId, RP_NAME, userId, userName, clientData, discoverable, true, att, error)) {
+    if (!WinWebAuthn::MakeCredential(rpId, RP_NAME, userId, userName, clientData, discoverable, true, requireUv, att, error)) {
       log("ERROR: WebAuthNAuthenticatorMakeCredential: " + error);
       return false;
     }
@@ -292,18 +322,17 @@ bool FidoDemo::Register(const std::string& path, const std::string& rpId, const 
     }
   } else {
     log(">>> Touch your authenticator / confirm the Windows Hello dialog ...");
-    r = fido_dev_make_cred(dev.get(), cred.get(), PinFor(dev.get(), pin));
+    r = fido_dev_make_cred(dev.get(), cred.get(), PinFor(dev.get(), pin, requireUv));
     if (r != FIDO_OK) {
       log("ERROR: fido_dev_make_cred: " + Err(r));
-      if (r == FIDO_ERR_PIN_REQUIRED)
-        log("  Hint: the key has a PIN set - enter it in the PIN field.");
+      LogPinHint(r, requireUv, pin, log);
       return false;
     }
   }
 
   const char* fmt = fido_cred_fmt(cred.get());
   log("  attestation format: " + std::string(fmt ? fmt : "(null)"));
-  log("  flags: 0x" + Hex(std::vector<uint8_t>{ fido_cred_flags(cred.get()) }) + ", sign count: " + std::to_string(fido_cred_sigcount(cred.get())));
+  log("  flags: " + FlagsText(fido_cred_flags(cred.get())) + ", sign count: " + std::to_string(fido_cred_sigcount(cred.get())));
   log("  aaguid: " + Hex(fido_cred_aaguid_ptr(cred.get()), fido_cred_aaguid_len(cred.get())));
 
   // Verify the attestation signature over authData || clientDataHash
@@ -329,9 +358,10 @@ bool FidoDemo::Register(const std::string& path, const std::string& rpId, const 
 }
 
 bool FidoDemo::SignIn(const std::string& path, const std::string& rpId, const std::string& pin,
-  bool discoverable, bool roamingOnly, const LogFn& log)
+  bool discoverable, bool roamingOnly, bool requireUv, const LogFn& log)
 {
   log("=== Sign In (getAssertion) ===");
+  log(std::string("  user verification: ") + (requireUv ? "required (PIN)" : "discouraged (touch only)"));
 
   std::vector<const StoredCredential*> candidates;
   for (const auto& c : m_credentials)
@@ -357,7 +387,9 @@ bool FidoDemo::SignIn(const std::string& path, const std::string& rpId, const st
   int r;
   if ((r = fido_assert_set_clientdata(assert.get(), reinterpret_cast<const unsigned char*>(clientData.data()), clientData.size())) != FIDO_OK ||
     (r = fido_assert_set_rp(assert.get(), rpId.c_str())) != FIDO_OK ||
-    (r = fido_assert_set_up(assert.get(), FIDO_OPT_TRUE)) != FIDO_OK) {
+    (r = fido_assert_set_up(assert.get(), FIDO_OPT_TRUE)) != FIDO_OK ||
+    // uv=true also makes fido_assert_verify() reject assertions without the UV flag, as a server would
+    (r = fido_assert_set_uv(assert.get(), UvOption(requireUv, path))) != FIDO_OK) {
     log("ERROR: setting up assertion: " + Err(r));
     return false;
   }
@@ -387,7 +419,7 @@ bool FidoDemo::SignIn(const std::string& path, const std::string& rpId, const st
 
     WinWebAuthn::Assertion wa;
     std::string error;
-    if (!WinWebAuthn::GetAssertion(rpId, clientData, allowList, true, wa, error)) {
+    if (!WinWebAuthn::GetAssertion(rpId, clientData, allowList, true, requireUv, wa, error)) {
       log("ERROR: WebAuthNAuthenticatorGetAssertion: " + error);
       return false;
     }
@@ -404,13 +436,12 @@ bool FidoDemo::SignIn(const std::string& path, const std::string& rpId, const st
     ids.push_back(wa.credentialId);
   } else {
     log(">>> Touch your authenticator / confirm the Windows Hello dialog ...");
-    r = fido_dev_get_assert(dev.get(), assert.get(), PinFor(dev.get(), pin));
+    r = fido_dev_get_assert(dev.get(), assert.get(), PinFor(dev.get(), pin, requireUv));
     if (r != FIDO_OK) {
       log("ERROR: fido_dev_get_assert: " + Err(r));
       if (r == FIDO_ERR_NO_CREDENTIALS)
         log("  Hint: this authenticator holds no matching credential for '" + rpId + "'.");
-      else if (r == FIDO_ERR_PIN_REQUIRED)
-        log("  Hint: the key has a PIN set - enter it in the PIN field.");
+      LogPinHint(r, requireUv, pin, log);
       return false;
     }
     for (size_t i = 0; i < fido_assert_count(assert.get()); i++) {
@@ -431,7 +462,7 @@ bool FidoDemo::SignIn(const std::string& path, const std::string& rpId, const st
     const char* user = fido_assert_user_name(assert.get(), i);
     log("  [" + std::to_string(i) + "] credential id: " + Hex(id));
     log("      user: " + std::string(user ? user : "(not returned)") +
-      ", flags: 0x" + Hex(std::vector<uint8_t>{ fido_assert_flags(assert.get(), i) }) +
+      ", flags: " + FlagsText(fido_assert_flags(assert.get(), i)) +
       ", sign count: " + std::to_string(fido_assert_sigcount(assert.get(), i)));
 
     const StoredCredential* match = nullptr;

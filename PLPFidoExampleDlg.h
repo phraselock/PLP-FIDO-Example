@@ -24,6 +24,8 @@ protected:
   afx_msg void OnBnClickedRegister();
   afx_msg void OnBnClickedSignIn();
   afx_msg void OnBnClickedClear();
+  afx_msg void OnCbnSelchangeDevice();
+  afx_msg void OnBnClickedRequireUv();
   afx_msg LRESULT OnAppLog(WPARAM wParam, LPARAM lParam);
   afx_msg LRESULT OnAppDone(WPARAM wParam, LPARAM lParam);
   afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
@@ -37,6 +39,7 @@ private:
   void Log(const CString& text);
   FidoDemo::LogFn MakeThreadLogger() const;
   std::string SelectedDevicePath() const;
+  void UpdatePinField();
   static std::string ToUtf8(const CString& s);
 
   // Runs a (blocking) libfido2 operation on a worker thread and keeps the UI responsive
@@ -50,6 +53,7 @@ private:
   CString m_pin;
   BOOL m_discoverable = FALSE;
   BOOL m_roamingOnly = TRUE;
+  BOOL m_requireUv = FALSE;
   CFont m_logFont;
   CSize m_minSize;  // initial window size = minimum when resizing
 

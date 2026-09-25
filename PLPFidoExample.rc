@@ -70,7 +70,7 @@ EXSTYLE WS_EX_APPWINDOW
 CAPTION "PLP FIDO Example (libfido2)"
 FONT 10, "Segoe UI", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Authenticator",IDC_STATIC,7,7,426,110
+    GROUPBOX        "Authenticator",IDC_STATIC,7,7,426,126
     LTEXT           "Device:",IDC_STATIC,16,24,44,10
     COMBOBOX        IDC_COMBO_DEVICE,64,21,300,160,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Refresh",IDC_BTN_REFRESH,370,20,56,16
@@ -80,17 +80,19 @@ BEGIN
     EDITTEXT        IDC_EDIT_USER,260,41,166,15,ES_AUTOHSCROLL
     LTEXT           "PIN:",IDC_STATIC,16,63,44,10
     EDITTEXT        IDC_EDIT_PIN,64,60,90,15,ES_PASSWORD | ES_AUTOHSCROLL
-    LTEXT           "(optional, USB keys only - Windows Hello asks itself)",IDC_STATIC,162,63,264,10
+    LTEXT           "(direct USB access only - Windows asks itself)",IDC_STATIC,162,63,264,10
     CONTROL         "Discoverable credential (passkey / resident key)",IDC_CHECK_RK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,64,82,340,12
     CONTROL         "windows://hello: security keys only (no Windows Hello)",IDC_CHECK_ROAMING,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,64,98,340,12
-    PUSHBUTTON      "Device Info",IDC_BTN_INFO,7,124,76,20
-    PUSHBUTTON      "Register",IDC_BTN_REGISTER,89,124,76,20
-    PUSHBUTTON      "Sign In",IDC_BTN_SIGNIN,171,124,76,20
-    PUSHBUTTON      "Clear Log",IDC_BTN_CLEAR,253,124,76,20
-    PUSHBUTTON      "Close",IDCANCEL,357,124,76,20
-    EDITTEXT        IDC_EDIT_LOG,7,151,426,172,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
+    CONTROL         "Require PIN (user verification)",IDC_CHECK_UV,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,64,114,340,12
+    PUSHBUTTON      "Device Info",IDC_BTN_INFO,7,140,76,20
+    PUSHBUTTON      "Register",IDC_BTN_REGISTER,89,140,76,20
+    PUSHBUTTON      "Sign In",IDC_BTN_SIGNIN,171,140,76,20
+    PUSHBUTTON      "Clear Log",IDC_BTN_CLEAR,253,140,76,20
+    PUSHBUTTON      "Close",IDCANCEL,357,140,76,20
+    EDITTEXT        IDC_EDIT_LOG,7,167,426,156,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
 END
 
 
@@ -117,6 +119,7 @@ BEGIN
     0, 0, 100, 0,       // PIN hint
     0, 0, 0, 0,         // IDC_CHECK_RK
     0, 0, 0, 0,         // IDC_CHECK_ROAMING
+    0, 0, 0, 0,         // IDC_CHECK_UV
     0, 0, 0, 0,         // IDC_BTN_INFO
     0, 0, 0, 0,         // IDC_BTN_REGISTER
     0, 0, 0, 0,         // IDC_BTN_SIGNIN
