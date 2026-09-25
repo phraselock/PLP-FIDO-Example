@@ -11,8 +11,8 @@
 
 CPLPFidoExampleDlg::CPLPFidoExampleDlg(CWnd* pParent /*=nullptr*/)
   : CDialogEx(IDD_PLPFIDOEXAMPLE_DIALOG, pParent)
-  , m_rpId(_T("example.phraselock.com"))
-  , m_userName(_T("alice"))
+  , m_rpId(_T("security.mycompany.com"))
+  , m_userName(_T("jane.dow@mycompany.com"))
   , m_fido(m_store)
 {
 }

@@ -16,7 +16,7 @@
 
 struct StoredCredential
 {
-  std::string rpId;                  // relying party, e.g. "example.phraselock.com"
+  std::string rpId;                  // relying party, e.g. "security.mycompany.com"
   std::string userName;
   std::vector<uint8_t> userId;       // random user handle sent to the authenticator as user.id
   std::vector<uint8_t> credentialId; // chosen by the authenticator
