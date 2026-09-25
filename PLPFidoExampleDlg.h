@@ -32,7 +32,8 @@ protected:
   DECLARE_MESSAGE_MAP()
 
 private:
-  // Posted from worker threads; lParam of WM_APP_LOG is a heap-allocated CString* owned by the receiver
+  // Posted from worker threads; lParam is heap-allocated and owned by the receiver:
+  // WM_APP_LOG -> CString*, WM_APP_DONE -> FidoResult*
   static constexpr UINT WM_APP_LOG = WM_APP + 1;
   static constexpr UINT WM_APP_DONE = WM_APP + 2;
 
@@ -43,7 +44,8 @@ private:
   static std::string ToUtf8(const CString& s);
 
   // Runs a (blocking) libfido2 operation on a worker thread and keeps the UI responsive
-  void RunAsync(std::function<void(const FidoDemo::LogFn&)> work);
+  void RunAsync(std::function<FidoResult(const FidoDemo::LogFn&)> work);
+  void ShowResult(const FidoResult& result);
   void SetBusy(bool busy);
 
   CComboBox m_comboDevice;

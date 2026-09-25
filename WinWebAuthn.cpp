@@ -37,7 +37,17 @@ namespace
   {
     char code[16];
     snprintf(code, sizeof(code), "0x%08lx", static_cast<unsigned long>(hr));
-    return ToUtf8(WebAuthNGetErrorName(hr)) + " (" + code + ")";
+    std::string name = ToUtf8(WebAuthNGetErrorName(hr)) + ", " + code;
+
+    // webauthn.dll maps most user-facing failures onto a few NTE_* codes
+    switch (hr) {
+    case NTE_USER_CANCELLED:  return "Cancelled by the user or timed out. (" + name + ")";
+    case NTE_NOT_FOUND:       return "No matching credential on this authenticator. (" + name + ")";
+    case NTE_EXISTS:          return "Credential already registered on this authenticator. (" + name + ")";
+    case NTE_NOT_SUPPORTED:   return "Not supported by the authenticator. (" + name + ")";
+    case NTE_TOKEN_KEYSET_STORAGE_FULL: return "Authenticator storage is full. (" + name + ")";
+    default:                  return name;
+    }
   }
 
   std::vector<uint8_t> Bytes(const BYTE* p, DWORD len)

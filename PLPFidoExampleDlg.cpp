@@ -90,6 +90,7 @@ void CPLPFidoExampleDlg::OnBnClickedInfo()
   std::string path = SelectedDevicePath();
   RunAsync([this, path](const FidoDemo::LogFn& log) {
     FidoDemo::DeviceInfo(path, log);
+    return FidoResult{};  // no result dialog for device info
   });
 }
 
@@ -104,7 +105,7 @@ void CPLPFidoExampleDlg::OnBnClickedRegister()
   bool roaming = m_roamingOnly != FALSE;
   bool uv = m_requireUv != FALSE;
   RunAsync([this, path, rpId, user, pin, rk, roaming, uv](const FidoDemo::LogFn& log) {
-    m_fido.Register(path, rpId, user, pin, rk, roaming, uv, log);
+    return m_fido.Register(path, rpId, user, pin, rk, roaming, uv, log);
   });
 }
 
@@ -118,7 +119,7 @@ void CPLPFidoExampleDlg::OnBnClickedSignIn()
   bool roaming = m_roamingOnly != FALSE;
   bool uv = m_requireUv != FALSE;
   RunAsync([this, path, rpId, pin, rk, roaming, uv](const FidoDemo::LogFn& log) {
-    m_fido.SignIn(path, rpId, pin, rk, roaming, uv, log);
+    return m_fido.SignIn(path, rpId, pin, rk, roaming, uv, log);
   });
 }
 
@@ -161,11 +162,22 @@ LRESULT CPLPFidoExampleDlg::OnAppLog(WPARAM, LPARAM lParam)
   return 0;
 }
 
-LRESULT CPLPFidoExampleDlg::OnAppDone(WPARAM, LPARAM)
+LRESULT CPLPFidoExampleDlg::OnAppDone(WPARAM, LPARAM lParam)
 {
+  std::unique_ptr<FidoResult> result(reinterpret_cast<FidoResult*>(lParam));
   SetBusy(false);
   Log(_T(""));
+  if (result && !result->title.empty())
+    ShowResult(*result);
   return 0;
+}
+
+void CPLPFidoExampleDlg::ShowResult(const FidoResult& result)
+{
+  CTaskDialog dlg(CString(CA2W(result.details.c_str(), CP_UTF8)), CString(CA2W(result.title.c_str(), CP_UTF8)),
+    _T("PLP FIDO Example"), TDCBF_OK_BUTTON, TDF_POSITION_RELATIVE_TO_WINDOW);
+  dlg.SetMainIcon(result.ok ? TD_INFORMATION_ICON : TD_ERROR_ICON);
+  dlg.DoModal(GetSafeHwnd());
 }
 
 void CPLPFidoExampleDlg::Log(const CString& text)
@@ -198,14 +210,15 @@ std::string CPLPFidoExampleDlg::ToUtf8(const CString& s)
   return std::string(CW2A(s, CP_UTF8));
 }
 
-void CPLPFidoExampleDlg::RunAsync(std::function<void(const FidoDemo::LogFn&)> work)
+void CPLPFidoExampleDlg::RunAsync(std::function<FidoResult(const FidoDemo::LogFn&)> work)
 {
   SetBusy(true);
   FidoDemo::LogFn log = MakeThreadLogger();
   HWND hwnd = GetSafeHwnd();
   std::thread([work = std::move(work), log, hwnd]() {
-    work(log);
-    ::PostMessage(hwnd, WM_APP_DONE, 0, 0);
+    auto* result = new FidoResult(work(log));
+    if (!::PostMessage(hwnd, WM_APP_DONE, 0, reinterpret_cast<LPARAM>(result)))
+      delete result;
   }).detach();
 }
 

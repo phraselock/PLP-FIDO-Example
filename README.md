@@ -45,6 +45,11 @@ The first build takes a few minutes because OpenSSL is compiled from source.
    signature check additionally demands the UV flag - as a relying party would. Unticked = touch only
    (`discouraged`). Some keys still ask for the PIN when creating a discoverable credential.
 
+Register and Sign In log every step of the WebAuthn ceremony (server challenge, clientDataJSON and
+its hash, authenticator call with duration, decoded authenticatorData incl. rpIdHash check, flags,
+signature counter, attestation certificate chain, signature) and end with a result dialog
+(`CTaskDialog`) summarising the outcome - handy for demos.
+
 ## Windows specifics
 
 - Since Windows 10 1903, **non-elevated processes cannot talk to FIDO HID devices directly**.

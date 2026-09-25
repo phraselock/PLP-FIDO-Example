@@ -22,6 +22,16 @@ struct StoredCredential
   std::vector<uint8_t> userId;
   std::vector<uint8_t> credentialId;
   std::vector<uint8_t> publicKey;  // raw COSE_ES256 public key as returned by fido_cred_pubkey_ptr()
+  std::vector<uint8_t> aaguid;
+  uint32_t signCount = 0;          // last seen signature counter (clone detection)
+};
+
+// Outcome of Register / SignIn, shown in the result dialog
+struct FidoResult
+{
+  bool ok = false;
+  std::string title;    // e.g. "Signed in as alice" or "Registration failed"
+  std::string details;  // multi-line summary or error reason
 };
 
 class FidoDemo
@@ -46,12 +56,12 @@ public:
   // only used for direct HID access - Windows collects the PIN in its own dialog.
 
   // makeCredential: creates an ES256 credential and keeps it in memory (m_credentials)
-  bool Register(const std::string& path, const std::string& rpId, const std::string& userName,
+  FidoResult Register(const std::string& path, const std::string& rpId, const std::string& userName,
     const std::string& pin, bool discoverable, bool roamingOnly, bool requireUv, const LogFn& log);
 
   // getAssertion: with discoverable=false the stored credentials for rpId are sent as allow list,
   // with discoverable=true the allow list is empty and the authenticator picks the resident key
-  bool SignIn(const std::string& path, const std::string& rpId, const std::string& pin,
+  FidoResult SignIn(const std::string& path, const std::string& rpId, const std::string& pin,
     bool discoverable, bool roamingOnly, bool requireUv, const LogFn& log);
 
 private:

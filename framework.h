@@ -14,6 +14,7 @@
 #include <afxwin.h>         // MFC core and standard components
 #include <afxext.h>         // MFC extensions
 #include <afxdialogex.h>    // CDialogEx
+#include <afxtaskdialog.h>  // CTaskDialog (result dialog)
 
 #ifndef _AFX_NO_AFXCMN_SUPPORT
 #include <afxcmn.h>             // MFC support for Windows Common Controls
