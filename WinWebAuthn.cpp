@@ -14,7 +14,9 @@ namespace
   std::wstring ToWide(const std::string& s)
   {
     if (s.empty())
+    {
       return {};
+    }
     int n = MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0);
     std::wstring w(n, L'\0');
     MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), w.data(), n);
@@ -24,10 +26,14 @@ namespace
   std::string ToUtf8(PCWSTR w)
   {
     if (w == nullptr)
+    {
       return {};
+    }
     int n = WideCharToMultiByte(CP_UTF8, 0, w, -1, nullptr, 0, nullptr, nullptr);
     if (n <= 1)
+    {
       return {};
+    }
     std::string s(n - 1, '\0');
     WideCharToMultiByte(CP_UTF8, 0, w, -1, s.data(), n, nullptr, nullptr);
     return s;
@@ -82,12 +88,30 @@ std::string WinWebAuthn::TransportName(uint32_t transport)
 {
   std::string s;
   auto add = [&s](const char* name) { s += s.empty() ? name : std::string(", ") + name; };
-  if (transport & WEBAUTHN_CTAP_TRANSPORT_USB) add("USB");
-  if (transport & WEBAUTHN_CTAP_TRANSPORT_NFC) add("NFC");
-  if (transport & WEBAUTHN_CTAP_TRANSPORT_BLE) add("BLE");
-  if (transport & WEBAUTHN_CTAP_TRANSPORT_TEST) add("TEST");
-  if (transport & WEBAUTHN_CTAP_TRANSPORT_INTERNAL) add("INTERNAL (platform)");
-  if (transport & WEBAUTHN_CTAP_TRANSPORT_HYBRID) add("HYBRID (phone)");
+  if (transport & WEBAUTHN_CTAP_TRANSPORT_USB)
+  {
+    add("USB");
+  }
+  if (transport & WEBAUTHN_CTAP_TRANSPORT_NFC)
+  {
+    add("NFC");
+  }
+  if (transport & WEBAUTHN_CTAP_TRANSPORT_BLE)
+  {
+    add("BLE");
+  }
+  if (transport & WEBAUTHN_CTAP_TRANSPORT_TEST)
+  {
+    add("TEST");
+  }
+  if (transport & WEBAUTHN_CTAP_TRANSPORT_INTERNAL)
+  {
+    add("INTERNAL (platform)");
+  }
+  if (transport & WEBAUTHN_CTAP_TRANSPORT_HYBRID)
+  {
+    add("HYBRID (phone)");
+  }
   return s.empty() ? "unknown" : s;
 }
 

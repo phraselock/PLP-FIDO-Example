@@ -62,8 +62,10 @@ BOOL CPLPFidoExampleDlg::OnInitDialog()
   Log(CString(CA2W(("Credential store: " + m_store.Location() + "  (" + std::to_string(m_store.Count()) +
     " credential(s) loaded)").c_str(), CP_UTF8)));
   if (m_store.SkippedOnLoad() > 0)
+  {
     Log(CString(CA2W(("  WARNING: " + std::to_string(m_store.SkippedOnLoad()) +
       " unreadable entries skipped").c_str(), CP_UTF8)));
+  }
 
   OnBnClickedRefresh();
   return TRUE;
@@ -87,9 +89,13 @@ void CPLPFidoExampleDlg::OnBnClickedRefresh()
 
   m_comboDevice.ResetContent();
   for (const auto& d : m_devices)
+  {
     m_comboDevice.AddString(CString(CA2W(d.label.c_str(), CP_UTF8)));
+  }
   if (!m_devices.empty())
+  {
     m_comboDevice.SetCurSel(0);
+  }
   UpdatePinField();
 }
 
@@ -180,7 +186,9 @@ LRESULT CPLPFidoExampleDlg::OnAppDone(WPARAM, LPARAM lParam)
   SetBusy(false);
   Log(_T(""));
   if (result && !result->title.empty())
+  {
     ShowResult(*result);
+  }
   return 0;
 }
 
@@ -206,7 +214,9 @@ FidoDemo::LogFn CPLPFidoExampleDlg::MakeThreadLogger() const
   {
     auto* text = new CString(CA2W(s.c_str(), CP_UTF8));
     if (!::PostMessage(hwnd, WM_APP_LOG, 0, reinterpret_cast<LPARAM>(text)))
+    {
       delete text;
+    }
   };
 }
 
@@ -214,7 +224,9 @@ std::string CPLPFidoExampleDlg::SelectedDevicePath() const
 {
   int sel = m_comboDevice.GetCurSel();
   if (sel < 0 || sel >= static_cast<int>(m_devices.size()))
+  {
     return {};
+  }
   return m_devices[sel].path;
 }
 
@@ -232,7 +244,9 @@ void CPLPFidoExampleDlg::RunAsync(std::function<FidoResult(const FidoDemo::LogFn
   {
     auto* result = new FidoResult(work(log));
     if (!::PostMessage(hwnd, WM_APP_DONE, 0, reinterpret_cast<LPARAM>(result)))
+    {
       delete result;
+    }
   }).detach();
 }
 
@@ -240,5 +254,7 @@ void CPLPFidoExampleDlg::SetBusy(bool busy)
 {
   m_busy = busy;
   for (int id : { IDC_COMBO_DEVICE, IDC_BTN_REFRESH, IDC_BTN_INFO, IDC_BTN_REGISTER, IDC_BTN_SIGNIN })
+  {
     GetDlgItem(id)->EnableWindow(!busy);
+  }
 }
