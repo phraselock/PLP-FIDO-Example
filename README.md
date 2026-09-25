@@ -63,14 +63,37 @@ signature counter, attestation certificate chain, signature) and end with a resu
   authenticatorData / attestation / signature to libfido2 for parsing and verification.
 - libfido2's Windows Hello backend needs the full `clientDataJSON`
   (`fido_cred_set_clientdata` / `fido_assert_set_clientdata`), not just its hash.
-- Credentials are kept in memory only; restart = registered credentials are gone
-  (resident keys stay on the authenticator and still work with *Discoverable credential*).
+
+## Credential store
+
+Registered credentials are kept behind the `ICredentialStore` interface - the relying party's side
+of WebAuthn. `FidoDemo` only knows the interface; the implementation `CredentialStore` writes
+`%APPDATA%\PhraseLock\PLP-FIDO-Example\credentials.txt`, a plain text file with one
+`[credential]` block per entry. `rpId`, `userName`, `signCount` and `created` are plain text,
+all binary values (`userId`, `credentialId`, `publicKey`, `aaguid`) are hex:
+
+```
+[credential]
+rpId         = example.phraselock.com
+userName     = alice
+userId       = 3f2a1b9c...
+credentialId = a17c55e0...
+publicKey    = e1d2...            (ES256 x || y, 64 bytes)
+aaguid       = 2fc0579f811347eab116bb5a8db9202a
+signCount    = 5
+created      = 2026-09-25 14:32:10
+```
+
+The file is written atomically (temp file + rename) after every change and can be inspected or
+edited by hand. Sign In with allow list therefore also works after a restart of the app.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `FidoDemo.h/.cpp` | All libfido2 code (MFC-free, UTF-8, log callback) |
+| `ICredentialStore.h` | Interface + `StoredCredential` for the relying party's credential storage |
+| `CredentialStore.h/.cpp` | `ICredentialStore` implementation: text file in `%APPDATA%` |
 | `WinWebAuthn.h/.cpp` | Direct `webauthn.dll` calls for the security-keys-only mode |
 | `PLPFidoExampleDlg.h/.cpp` | Dialog, runs FIDO operations on a worker thread |
 | `PLPFidoExample.h/.cpp` | `CWinApp`, calls `fido_init()` |

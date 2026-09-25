@@ -110,12 +110,15 @@
     <ClInclude Include="PLPFidoExample.h" />
     <ClInclude Include="PLPFidoExampleDlg.h" />
     <ClInclude Include="FidoDemo.h" />
+    <ClInclude Include="ICredentialStore.h" />
+    <ClInclude Include="CredentialStore.h" />
     <ClInclude Include="WinWebAuthn.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PLPFidoExample.cpp" />
     <ClCompile Include="PLPFidoExampleDlg.cpp" />
     <ClCompile Include="FidoDemo.cpp" />
+    <ClCompile Include="CredentialStore.cpp" />
     <ClCompile Include="WinWebAuthn.cpp" />
   </ItemGroup>
   <ItemGroup>

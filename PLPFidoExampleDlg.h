@@ -3,6 +3,7 @@
 #include <functional>
 #include <vector>
 
+#include "CredentialStore.h"
 #include "FidoDemo.h"
 
 class CPLPFidoExampleDlg : public CDialogEx
@@ -60,6 +61,7 @@ private:
   CSize m_minSize;  // initial window size = minimum when resizing
 
   std::vector<FidoDevice> m_devices;
+  CredentialStore m_store;  // declared before m_fido, which keeps a reference to it
   FidoDemo m_fido;
   bool m_busy = false;
 };

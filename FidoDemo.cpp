@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <cstring>
 #include <memory>
+#include <optional>
 
 #include "FidoDemo.h"
 #include "WinWebAuthn.h"
@@ -47,14 +48,18 @@ namespace
     static const char digits[] = "0123456789abcdef";
     std::string s;
     s.reserve(len * 2);
-    for (size_t i = 0; i < len; i++) {
+    for (size_t i = 0; i < len; i++)
+    {
       s += digits[p[i] >> 4];
       s += digits[p[i] & 0x0f];
     }
     return s;
   }
 
-  std::string Hex(const std::vector<uint8_t>& v) { return Hex(v.data(), v.size()); }
+  std::string Hex(const std::vector<uint8_t>& v)
+  {
+    return Hex(v.data(), v.size());
+  }
 
   // Abbreviated hex for the result dialog: "3f2a1b9c...e0d1 (64 bytes)"
   std::string ShortHex(const std::vector<uint8_t>& v)
@@ -69,14 +74,18 @@ namespace
     static const char tbl[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
     std::string out;
     size_t i = 0;
-    for (; i + 2 < data.size(); i += 3) {
+    for (; i + 2 < data.size(); i += 3)
+    {
       uint32_t n = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2];
       out += tbl[(n >> 18) & 63]; out += tbl[(n >> 12) & 63]; out += tbl[(n >> 6) & 63]; out += tbl[n & 63];
     }
-    if (data.size() - i == 1) {
+    if (data.size() - i == 1)
+    {
       uint32_t n = data[i] << 16;
       out += tbl[(n >> 18) & 63]; out += tbl[(n >> 12) & 63];
-    } else if (data.size() - i == 2) {
+    }
+    else if (data.size() - i == 2)
+    {
       uint32_t n = (data[i] << 16) | (data[i + 1] << 8);
       out += tbl[(n >> 18) & 63]; out += tbl[(n >> 12) & 63]; out += tbl[(n >> 6) & 63];
     }
@@ -112,7 +121,8 @@ namespace
   // Human readable error for the result dialog
   std::string FriendlyErr(int r)
   {
-    switch (r) {
+    switch (r)
+    {
     case FIDO_ERR_ACTION_TIMEOUT:
     case FIDO_ERR_USER_ACTION_TIMEOUT: return "Timed out waiting for the user.";
     case FIDO_ERR_KEEPALIVE_CANCEL:
@@ -143,22 +153,26 @@ namespace
 
   DevPtr OpenDevice(const std::string& path, const FidoDemo::LogFn& log, std::string& error)
   {
-    if (path.empty()) {
+    if (path.empty())
+    {
       error = "No device selected.";
       log("ERROR: no device selected");
       return nullptr;
     }
     DevPtr dev(fido_dev_new());
-    if (!dev) {
+    if (!dev)
+    {
       error = "fido_dev_new failed.";
       log("ERROR: fido_dev_new failed");
       return nullptr;
     }
     int r = fido_dev_open(dev.get(), path.c_str());
-    if (r != FIDO_OK) {
+    if (r != FIDO_OK)
+    {
       error = "Could not open the authenticator: " + Err(r);
       log("ERROR: fido_dev_open(" + path + "): " + Err(r));
-      if (!FidoDemo::IsElevated() && path != WINHELLO_PATH) {
+      if (!FidoDemo::IsElevated() && path != WINHELLO_PATH)
+      {
         error += "\n\nWindows blocks direct FIDO access for non-elevated processes."
           " Run as Administrator or use 'windows://hello'.";
         log("  Hint: Windows blocks raw FIDO HID access for non-elevated processes."
@@ -227,7 +241,8 @@ namespace
   bool LogAuthData(const unsigned char* ad, size_t len, const std::string& rpId, const FidoDemo::LogFn& log)
   {
     log("      authData       : " + std::to_string(len) + " bytes");
-    if (ad == nullptr || len < 37) {
+    if (ad == nullptr || len < 37)
+    {
       log("      authData too short");
       return false;
     }
@@ -252,7 +267,24 @@ namespace
     return buf;
   }
 
-  std::string YesNo(bool b) { return b ? "yes" : "no"; }
+  std::string YesNo(bool b)
+  {
+    return b ? "yes" : "no";
+  }
+
+  std::string LocalTimestamp()
+  {
+    SYSTEMTIME t;
+    GetLocalTime(&t);
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%04u-%02u-%02u %02u:%02u:%02u", t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond);
+    return buf;
+  }
+}
+
+FidoDemo::FidoDemo(ICredentialStore& store)
+  : m_store(store)
+{
 }
 
 void FidoDemo::Init()
@@ -277,17 +309,22 @@ std::vector<FidoDevice> FidoDemo::ListDevices(const LogFn& log)
   std::vector<FidoDevice> result;
 
   fido_dev_info_t* devlist = fido_dev_info_new(MAX_DEVICES);
-  if (!devlist) {
+  if (!devlist)
+  {
     log("ERROR: fido_dev_info_new failed");
     return result;
   }
 
   size_t n = 0;
   int r = fido_dev_info_manifest(devlist, MAX_DEVICES, &n);
-  if (r != FIDO_OK) {
+  if (r != FIDO_OK)
+  {
     log("ERROR: fido_dev_info_manifest: " + Err(r));
-  } else {
-    for (size_t i = 0; i < n; i++) {
+  }
+  else
+  {
+    for (size_t i = 0; i < n; i++)
+    {
       const fido_dev_info_t* di = fido_dev_info_ptr(devlist, i);
       FidoDevice d;
       d.path = fido_dev_info_path(di);
@@ -330,7 +367,8 @@ bool FidoDemo::DeviceInfo(const std::string& path, const LogFn& log)
 
   InfoPtr ci(fido_cbor_info_new());
   int r = fido_dev_get_cbor_info(d, ci.get());
-  if (r != FIDO_OK) {
+  if (r != FIDO_OK)
+  {
     log("ERROR: fido_dev_get_cbor_info: " + Err(r));
     return false;
   }
@@ -371,7 +409,8 @@ FidoResult FidoDemo::Register(const std::string& path, const std::string& rpId, 
 {
   FidoResult result;
   result.title = "Registration failed";
-  auto fail = [&](const std::string& logText, const std::string& reason, const std::string& hint = {}) {
+  auto fail = [&](const std::string& logText, const std::string& reason, const std::string& hint = {})
+  {
     log("ERROR: " + logText);
     if (!hint.empty())
       log("  Hint: " + hint);
@@ -392,7 +431,8 @@ FidoResult FidoDemo::Register(const std::string& path, const std::string& rpId, 
 
   std::string error;
   DevPtr dev;
-  if (!viaWebAuthn && !(dev = OpenDevice(path, log, error))) {
+  if (!viaWebAuthn && !(dev = OpenDevice(path, log, error)))
+  {
     log("Registration FAILED.");
     result.details = error;
     return result;
@@ -427,7 +467,8 @@ FidoResult FidoDemo::Register(const std::string& path, const std::string& rpId, 
   log("[3/5] Authenticator: makeCredential");
   log(requireUv ? "      >>> Enter your PIN and touch your authenticator ..." : "      >>> Touch your authenticator ...");
   Clock::time_point start = Clock::now();
-  if (viaWebAuthn) {
+  if (viaWebAuthn)
+  {
     WinWebAuthn::Attestation att;
     if (!WinWebAuthn::MakeCredential(rpId, RP_NAME, userId, userName, clientData, discoverable, true, requireUv, att, error))
       return fail("WebAuthNAuthenticatorMakeCredential: " + error, error);
@@ -440,7 +481,9 @@ FidoResult FidoDemo::Register(const std::string& path, const std::string& rpId, 
       (r = fido_cred_set_fmt(cred.get(), att.format.c_str())) != FIDO_OK ||
       (!att.attStmt.empty() && (r = fido_cred_set_attstmt(cred.get(), att.attStmt.data(), att.attStmt.size())) != FIDO_OK))
       return fail("importing webauthn.dll result into libfido2: " + Err(r), "Could not parse the authenticator response: " + Err(r));
-  } else {
+  }
+  else
+  {
     r = fido_dev_make_cred(dev.get(), cred.get(), PinFor(dev.get(), pin, requireUv));
     if (r != FIDO_OK)
       return fail("fido_dev_make_cred: " + Err(r), FriendlyErr(r), PinHint(r, requireUv, pin));
@@ -464,10 +507,13 @@ FidoResult FidoDemo::Register(const std::string& path, const std::string& rpId, 
   log("      AAGUID         : " + Hex(sc.aaguid));
   log("      credential id  : " + std::to_string(sc.credentialId.size()) + " bytes  " + Hex(sc.credentialId));
   log("      public key     : ES256 (ECDSA P-256)");
-  if (sc.publicKey.size() == 64) {
+  if (sc.publicKey.size() == 64)
+  {
     log("                       x = " + Hex(sc.publicKey.data(), 32));
     log("                       y = " + Hex(sc.publicKey.data() + 32, 32));
-  } else {
+  }
+  else
+  {
     log("                       " + Hex(sc.publicKey));
   }
 
@@ -479,14 +525,18 @@ FidoResult FidoDemo::Register(const std::string& path, const std::string& rpId, 
   // Verify the attestation signature over authData || clientDataHash
   const char* fmt = fido_cred_fmt(cred.get());
   std::string attestation;
-  if (fmt == nullptr || strcmp(fmt, "none") == 0) {
+  if (fmt == nullptr || strcmp(fmt, "none") == 0)
+  {
     log("      attestation    : none - no attestation statement provided, nothing to verify");
     attestation = "none";
-  } else {
+  }
+  else
+  {
     size_t certs = fido_cred_x5c_list_count(cred.get());
     log("      attestation    : " + std::string(fmt) + ", " +
       (certs ? std::to_string(certs) + " certificate(s)" : std::string("self attestation (no certificate)")));
-    for (size_t i = 0; i < certs; i++) {
+    for (size_t i = 0; i < certs; i++)
+    {
       const unsigned char* der = fido_cred_x5c_list_ptr(cred.get(), i);
       size_t len = fido_cred_x5c_list_len(cred.get(), i);
       log("                       [" + std::to_string(i) + "] subject: " + CertName(der, len, false));
@@ -501,6 +551,12 @@ FidoResult FidoDemo::Register(const std::string& path, const std::string& rpId, 
   }
 
   log("[5/5] Server: store credential for '" + userName + "'");
+  sc.created = LocalTimestamp();
+  if (!m_store.Add(sc))
+    return fail("could not save the credential store: " + m_store.Location(),
+      "The authenticator created the credential, but it could not be saved to\n" + m_store.Location());
+  log("      saved to       : " + m_store.Location() + "  (" + std::to_string(m_store.Count()) + " credential(s))");
+
   result.ok = true;
   result.title = "Registration successful";
   result.details =
@@ -512,8 +568,7 @@ FidoResult FidoDemo::Register(const std::string& path, const std::string& rpId, 
     "Discoverable (passkey): " + YesNo(discoverable) + "\n"
     "Attestation: " + attestation;
 
-  m_credentials.push_back(std::move(sc));
-  log("Registration OK - " + std::to_string(m_credentials.size()) + " credential(s) stored in memory.");
+  log("Registration OK.");
   return result;
 }
 
@@ -522,7 +577,8 @@ FidoResult FidoDemo::SignIn(const std::string& path, const std::string& rpId, co
 {
   FidoResult result;
   result.title = "Sign-in failed";
-  auto fail = [&](const std::string& logText, const std::string& reason, const std::string& hint = {}) {
+  auto fail = [&](const std::string& logText, const std::string& reason, const std::string& hint = {})
+  {
     log("ERROR: " + logText);
     if (!hint.empty())
       log("  Hint: " + hint);
@@ -537,19 +593,18 @@ FidoResult FidoDemo::SignIn(const std::string& path, const std::string& rpId, co
   log("  device            : " + DeviceDescription(path, viaWebAuthn));
   log(std::string("  user verification : ") + (requireUv ? "required (PIN)" : "discouraged (touch only)"));
 
-  std::vector<StoredCredential*> candidates;
-  for (auto& c : m_credentials)
-    if (c.rpId == rpId)
-      candidates.push_back(&c);
+  // The credentials the server knows for this relying party (loaded from the credential store)
+  std::vector<StoredCredential> candidates = m_store.FindByRpId(rpId);
 
   if (!discoverable && candidates.empty())
     return fail("no credential registered for RP '" + rpId + "'",
-      "No credential registered for '" + rpId + "' in this session.",
+      "No credential registered for '" + rpId + "' in the credential store.",
       "Register first, or tick 'Discoverable credential' to sign in without allow list.");
 
   std::string error;
   DevPtr dev;
-  if (!viaWebAuthn && !(dev = OpenDevice(path, log, error))) {
+  if (!viaWebAuthn && !(dev = OpenDevice(path, log, error)))
+  {
     log("Sign-in FAILED.");
     result.details = error;
     return result;
@@ -559,12 +614,15 @@ FidoResult FidoDemo::SignIn(const std::string& path, const std::string& rpId, co
   std::vector<uint8_t> challenge = RandomBytes(32);
   log("      rp.id          : " + rpId);
   log("      challenge      : " + Base64Url(challenge) + "  (32 random bytes)");
-  if (discoverable) {
+  if (discoverable)
+  {
     log("      allowList      : empty -> the authenticator chooses the account (discoverable credential)");
-  } else {
+  }
+  else
+  {
     log("      allowList      : " + std::to_string(candidates.size()) + " credential(s) registered for this RP");
-    for (const StoredCredential* c : candidates)
-      log("                       " + Hex(c->credentialId) + "  (" + c->userName + ")");
+    for (const StoredCredential& c : candidates)
+      log("                       " + Hex(c.credentialId) + "  (" + c.userName + ")");
   }
 
   log("[2/5] Client: build clientDataJSON and hash it");
@@ -580,9 +638,10 @@ FidoResult FidoDemo::SignIn(const std::string& path, const std::string& rpId, co
     (r = fido_assert_set_uv(assert.get(), UvOption(requireUv, path))) != FIDO_OK)
     return fail("setting up assertion: " + Err(r), "Setting up the assertion failed: " + Err(r));
 
-  if (!discoverable) {
-    for (const StoredCredential* c : candidates)
-      if ((r = fido_assert_allow_cred(assert.get(), c->credentialId.data(), c->credentialId.size())) != FIDO_OK)
+  if (!discoverable)
+  {
+    for (const StoredCredential& c : candidates)
+      if ((r = fido_assert_allow_cred(assert.get(), c.credentialId.data(), c.credentialId.size())) != FIDO_OK)
         return fail("fido_assert_allow_cred: " + Err(r), "Setting up the allow list failed: " + Err(r));
   }
 
@@ -597,11 +656,12 @@ FidoResult FidoDemo::SignIn(const std::string& path, const std::string& rpId, co
   log("[3/5] Authenticator: getAssertion");
   log(requireUv ? "      >>> Enter your PIN and touch your authenticator ..." : "      >>> Touch your authenticator ...");
   Clock::time_point start = Clock::now();
-  if (viaWebAuthn) {
+  if (viaWebAuthn)
+  {
     std::vector<std::vector<uint8_t>> allowList;
     if (!discoverable)
-      for (const StoredCredential* c : candidates)
-        allowList.push_back(c->credentialId);
+      for (const StoredCredential& c : candidates)
+        allowList.push_back(c.credentialId);
 
     WinWebAuthn::Assertion wa;
     if (!WinWebAuthn::GetAssertion(rpId, clientData, allowList, true, requireUv, wa, error))
@@ -614,15 +674,18 @@ FidoResult FidoDemo::SignIn(const std::string& path, const std::string& rpId, co
       return fail("importing webauthn.dll result into libfido2: " + Err(r), "Could not parse the authenticator response: " + Err(r));
     ids.push_back(wa.credentialId);
     userIds.push_back(wa.userId);
-  } else {
+  }
+  else
+  {
     r = fido_dev_get_assert(dev.get(), assert.get(), PinFor(dev.get(), pin, requireUv));
     if (r != FIDO_OK)
       return fail("fido_dev_get_assert: " + Err(r), FriendlyErr(r), PinHint(r, requireUv, pin));
-    for (size_t i = 0; i < fido_assert_count(assert.get()); i++) {
+    for (size_t i = 0; i < fido_assert_count(assert.get()); i++)
+    {
       std::vector<uint8_t> id(fido_assert_id_ptr(assert.get(), i), fido_assert_id_ptr(assert.get(), i) + fido_assert_id_len(assert.get(), i));
       // CTAP2.0 allows the authenticator to omit the credential id if the allow list had exactly one entry
       if (id.empty() && !discoverable && candidates.size() == 1)
-        id = candidates[0]->credentialId;
+        id = candidates[0].credentialId;
       ids.push_back(std::move(id));
       userIds.emplace_back(fido_assert_user_id_ptr(assert.get(), i),
         fido_assert_user_id_ptr(assert.get(), i) + fido_assert_user_id_len(assert.get(), i));
@@ -636,14 +699,12 @@ FidoResult FidoDemo::SignIn(const std::string& path, const std::string& rpId, co
   std::vector<std::string> signedIn;
   std::string summary;
 
-  for (size_t i = 0; i < ids.size(); i++) {
+  for (size_t i = 0; i < ids.size(); i++)
+  {
     const std::vector<uint8_t>& id = ids[i];
     log("    assertion [" + std::to_string(i) + "]");
 
-    StoredCredential* match = nullptr;
-    for (auto& c : m_credentials)
-      if (c.credentialId == id)
-        match = &c;
+    std::optional<StoredCredential> match = m_store.FindById(id);
 
     log("      credential id  : " + Hex(id) + (match ? "  -> '" + match->userName + "'" : "  -> unknown"));
     if (!userIds[i].empty())
@@ -656,9 +717,10 @@ FidoResult FidoDemo::SignIn(const std::string& path, const std::string& rpId, co
     uint8_t flags = fido_assert_flags(assert.get(), i);
     uint32_t count = fido_assert_sigcount(assert.get(), i);
 
-    if (!match) {
-      log("      unknown credential (not registered in this session) - no public key to verify with");
-      failReason = "The authenticator used a credential that was not registered in this session.";
+    if (!match)
+    {
+      log("      unknown credential (not in the credential store) - no public key to verify with");
+      failReason = "The authenticator used a credential that is not in the credential store.";
       allOk = false;
       continue;
     }
@@ -678,7 +740,8 @@ FidoResult FidoDemo::SignIn(const std::string& path, const std::string& rpId, co
     log("      signature      : ECDSA P-256 / SHA-256, " + std::to_string(fido_assert_sig_len(assert.get(), i)) +
       " bytes DER  " + Hex(fido_assert_sig_ptr(assert.get(), i), fido_assert_sig_len(assert.get(), i)));
 
-    if (!rpOk) {
+    if (!rpOk)
+    {
       failReason = "The response was created for a different relying party (rpIdHash mismatch).";
       allOk = false;
       continue;
@@ -687,7 +750,8 @@ FidoResult FidoDemo::SignIn(const std::string& path, const std::string& rpId, co
     // Server side step: verify the signature over authData || clientDataHash with the stored public key
     Es256Ptr pk(es256_pk_new());
     if ((r = es256_pk_from_ptr(pk.get(), match->publicKey.data(), match->publicKey.size())) != FIDO_OK ||
-      (r = fido_assert_verify(assert.get(), i, COSE_ES256, pk.get())) != FIDO_OK) {
+      (r = fido_assert_verify(assert.get(), i, COSE_ES256, pk.get())) != FIDO_OK)
+    {
       log("      verification   : INVALID - " + Err(r));
       failReason = (requireUv && !(flags & 0x04))
         ? "The authenticator did not verify the user (no PIN)."
@@ -697,7 +761,8 @@ FidoResult FidoDemo::SignIn(const std::string& path, const std::string& rpId, co
     }
     log("      verification   : VALID with the public key stored at registration");
 
-    match->signCount = count;
+    if (!m_store.UpdateSignCount(id, count))
+      log("      WARNING: could not save the new signCount to " + m_store.Location());
     signedIn.push_back(match->userName);
     summary +=
       "Relying party: " + rpId + "\n"
@@ -707,7 +772,8 @@ FidoResult FidoDemo::SignIn(const std::string& path, const std::string& rpId, co
       "Credential ID: " + ShortHex(id) + "\n";
   }
 
-  if (!allOk || signedIn.empty()) {
+  if (!allOk || signedIn.empty())
+  {
     log("Sign-in FAILED.");
     result.details = failReason.empty() ? "No valid assertion returned." : failReason;
     return result;

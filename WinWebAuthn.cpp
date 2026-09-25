@@ -40,7 +40,8 @@ namespace
     std::string name = ToUtf8(WebAuthNGetErrorName(hr)) + ", " + code;
 
     // webauthn.dll maps most user-facing failures onto a few NTE_* codes
-    switch (hr) {
+    switch (hr)
+    {
     case NTE_USER_CANCELLED:  return "Cancelled by the user or timed out. (" + name + ")";
     case NTE_NOT_FOUND:       return "No matching credential on this authenticator. (" + name + ")";
     case NTE_EXISTS:          return "Credential already registered on this authenticator. (" + name + ")";
@@ -137,7 +138,8 @@ bool WinWebAuthn::MakeCredential(const std::string& rpId, const std::string& rpN
 
   PWEBAUTHN_CREDENTIAL_ATTESTATION att = nullptr;
   HRESULT hr = WebAuthNAuthenticatorMakeCredential(OwnerWindow(), &rp, &user, &algs, &clientData, &opt, &att);
-  if (FAILED(hr)) {
+  if (FAILED(hr))
+  {
     error = ErrorText(hr);
     return false;
   }
@@ -164,7 +166,8 @@ bool WinWebAuthn::GetAssertion(const std::string& rpId, const std::string& clien
   clientData.pwszHashAlgId = WEBAUTHN_HASH_ALGORITHM_SHA_256;
 
   std::vector<WEBAUTHN_CREDENTIAL> creds;
-  for (const auto& id : allowList) {
+  for (const auto& id : allowList)
+  {
     WEBAUTHN_CREDENTIAL c{};
     c.dwVersion = WEBAUTHN_CREDENTIAL_CURRENT_VERSION;
     c.cbId = static_cast<DWORD>(id.size());
@@ -183,7 +186,8 @@ bool WinWebAuthn::GetAssertion(const std::string& rpId, const std::string& clien
 
   PWEBAUTHN_ASSERTION assertion = nullptr;
   HRESULT hr = WebAuthNAuthenticatorGetAssertion(OwnerWindow(), wRpId.c_str(), &clientData, &opt, &assertion);
-  if (FAILED(hr)) {
+  if (FAILED(hr))
+  {
     error = ErrorText(hr);
     return false;
   }

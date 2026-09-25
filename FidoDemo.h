@@ -9,21 +9,12 @@
 #include <string>
 #include <vector>
 
+#include "ICredentialStore.h"
+
 struct FidoDevice
 {
   std::string path;   // e.g. "\\?\hid#vid_1050&pid_0407..." or "windows://hello"
   std::string label;  // human readable, for the device combo box
-};
-
-struct StoredCredential
-{
-  std::string rpId;
-  std::string userName;
-  std::vector<uint8_t> userId;
-  std::vector<uint8_t> credentialId;
-  std::vector<uint8_t> publicKey;  // raw COSE_ES256 public key as returned by fido_cred_pubkey_ptr()
-  std::vector<uint8_t> aaguid;
-  uint32_t signCount = 0;          // last seen signature counter (clone detection)
 };
 
 // Outcome of Register / SignIn, shown in the result dialog
@@ -38,6 +29,9 @@ class FidoDemo
 {
 public:
   using LogFn = std::function<void(const std::string&)>;
+
+  // Registered credentials are kept in (and read from) the given store; it must outlive this object
+  explicit FidoDemo(ICredentialStore& store);
 
   // Wraps fido_init(); call once at startup
   static void Init();
@@ -55,7 +49,7 @@ public:
   // requireUv: user verification (PIN / biometrics) required; otherwise touch only. The PIN argument is
   // only used for direct HID access - Windows collects the PIN in its own dialog.
 
-  // makeCredential: creates an ES256 credential and keeps it in memory (m_credentials)
+  // makeCredential: creates an ES256 credential and saves it in the credential store
   FidoResult Register(const std::string& path, const std::string& rpId, const std::string& userName,
     const std::string& pin, bool discoverable, bool roamingOnly, bool requireUv, const LogFn& log);
 
@@ -65,5 +59,5 @@ public:
     bool discoverable, bool roamingOnly, bool requireUv, const LogFn& log);
 
 private:
-  std::vector<StoredCredential> m_credentials;
+  ICredentialStore& m_store;
 };

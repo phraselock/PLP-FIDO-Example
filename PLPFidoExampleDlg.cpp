@@ -13,6 +13,7 @@ CPLPFidoExampleDlg::CPLPFidoExampleDlg(CWnd* pParent /*=nullptr*/)
   : CDialogEx(IDD_PLPFIDOEXAMPLE_DIALOG, pParent)
   , m_rpId(_T("example.phraselock.com"))
   , m_userName(_T("alice"))
+  , m_fido(m_store)
 {
 }
 
@@ -58,6 +59,12 @@ BOOL CPLPFidoExampleDlg::OnInitDialog()
     ? _T("Process is elevated: direct HID access to FIDO keys is possible.")
     : _T("Process is NOT elevated: Windows blocks direct HID access to FIDO keys - use 'windows://hello' (routes USB keys via webauthn.dll too) or run as Administrator."));
 
+  Log(CString(CA2W(("Credential store: " + m_store.Location() + "  (" + std::to_string(m_store.Count()) +
+    " credential(s) loaded)").c_str(), CP_UTF8)));
+  if (m_store.SkippedOnLoad() > 0)
+    Log(CString(CA2W(("  WARNING: " + std::to_string(m_store.SkippedOnLoad()) +
+      " unreadable entries skipped").c_str(), CP_UTF8)));
+
   OnBnClickedRefresh();
   return TRUE;
 }
@@ -65,7 +72,8 @@ BOOL CPLPFidoExampleDlg::OnInitDialog()
 void CPLPFidoExampleDlg::OnCancel()
 {
   // A worker thread still uses m_fido - don't tear down the dialog underneath it
-  if (m_busy) {
+  if (m_busy)
+  {
     Log(_T("Operation in progress - complete or cancel it on the authenticator first (timeout 60 s)."));
     return;
   }
@@ -88,7 +96,8 @@ void CPLPFidoExampleDlg::OnBnClickedRefresh()
 void CPLPFidoExampleDlg::OnBnClickedInfo()
 {
   std::string path = SelectedDevicePath();
-  RunAsync([this, path](const FidoDemo::LogFn& log) {
+  RunAsync([this, path](const FidoDemo::LogFn& log)
+  {
     FidoDemo::DeviceInfo(path, log);
     return FidoResult{};  // no result dialog for device info
   });
@@ -104,7 +113,8 @@ void CPLPFidoExampleDlg::OnBnClickedRegister()
   bool rk = m_discoverable != FALSE;
   bool roaming = m_roamingOnly != FALSE;
   bool uv = m_requireUv != FALSE;
-  RunAsync([this, path, rpId, user, pin, rk, roaming, uv](const FidoDemo::LogFn& log) {
+  RunAsync([this, path, rpId, user, pin, rk, roaming, uv](const FidoDemo::LogFn& log)
+  {
     return m_fido.Register(path, rpId, user, pin, rk, roaming, uv, log);
   });
 }
@@ -118,7 +128,8 @@ void CPLPFidoExampleDlg::OnBnClickedSignIn()
   bool rk = m_discoverable != FALSE;
   bool roaming = m_roamingOnly != FALSE;
   bool uv = m_requireUv != FALSE;
-  RunAsync([this, path, rpId, pin, rk, roaming, uv](const FidoDemo::LogFn& log) {
+  RunAsync([this, path, rpId, pin, rk, roaming, uv](const FidoDemo::LogFn& log)
+  {
     return m_fido.SignIn(path, rpId, pin, rk, roaming, uv, log);
   });
 }
@@ -149,7 +160,8 @@ void CPLPFidoExampleDlg::UpdatePinField()
 void CPLPFidoExampleDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 {
   CDialogEx::OnGetMinMaxInfo(lpMMI);
-  if (m_minSize.cx > 0) {
+  if (m_minSize.cx > 0)
+  {
     lpMMI->ptMinTrackSize.x = m_minSize.cx;
     lpMMI->ptMinTrackSize.y = m_minSize.cy;
   }
@@ -190,7 +202,8 @@ void CPLPFidoExampleDlg::Log(const CString& text)
 FidoDemo::LogFn CPLPFidoExampleDlg::MakeThreadLogger() const
 {
   HWND hwnd = GetSafeHwnd();
-  return [hwnd](const std::string& s) {
+  return [hwnd](const std::string& s)
+  {
     auto* text = new CString(CA2W(s.c_str(), CP_UTF8));
     if (!::PostMessage(hwnd, WM_APP_LOG, 0, reinterpret_cast<LPARAM>(text)))
       delete text;
@@ -215,7 +228,8 @@ void CPLPFidoExampleDlg::RunAsync(std::function<FidoResult(const FidoDemo::LogFn
   SetBusy(true);
   FidoDemo::LogFn log = MakeThreadLogger();
   HWND hwnd = GetSafeHwnd();
-  std::thread([work = std::move(work), log, hwnd]() {
+  std::thread([work = std::move(work), log, hwnd]()
+  {
     auto* result = new FidoResult(work(log));
     if (!::PostMessage(hwnd, WM_APP_DONE, 0, reinterpret_cast<LPARAM>(result)))
       delete result;
