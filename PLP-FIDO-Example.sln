@@ -1,0 +1,31 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PLP-FIDO-Example", "PLP-FIDO-Example.vcxproj", "{55C5E5EA-B52F-453E-AEE6-007CF982603B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM64 = Debug|ARM64
+		Debug|x64 = Debug|x64
+		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{55C5E5EA-B52F-453E-AEE6-007CF982603B}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{55C5E5EA-B52F-453E-AEE6-007CF982603B}.Debug|ARM64.Build.0 = Debug|ARM64
+		{55C5E5EA-B52F-453E-AEE6-007CF982603B}.Debug|x64.ActiveCfg = Debug|x64
+		{55C5E5EA-B52F-453E-AEE6-007CF982603B}.Debug|x64.Build.0 = Debug|x64
+		{55C5E5EA-B52F-453E-AEE6-007CF982603B}.Release|ARM64.ActiveCfg = Release|ARM64
+		{55C5E5EA-B52F-453E-AEE6-007CF982603B}.Release|ARM64.Build.0 = Release|ARM64
+		{55C5E5EA-B52F-453E-AEE6-007CF982603B}.Release|x64.ActiveCfg = Release|x64
+		{55C5E5EA-B52F-453E-AEE6-007CF982603B}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {224B77E2-8AAD-49D6-A8FF-345CFEB05058}
+	EndGlobalSection
+EndGlobal

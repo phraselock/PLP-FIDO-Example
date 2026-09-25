@@ -1,0 +1,13 @@
+.vs/
+x64/
+ARM64/
+/PLP-FIDO-Example/
+vcpkg_installed/
+*.user
+*.aps
+*.ncb
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+.DS_Store
