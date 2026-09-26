@@ -2,8 +2,12 @@
 #include "PLPFidoExample.h"
 #include "PLPFidoExampleDlg.h"
 
+#include <shlwapi.h>
+
 #include <memory>
 #include <thread>
+
+#pragma comment(lib, "shlwapi.lib")
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -41,6 +45,7 @@ BEGIN_MESSAGE_MAP(CPLPFidoExampleDlg, CDialogEx)
   ON_MESSAGE(WM_APP_LOG, &CPLPFidoExampleDlg::OnAppLog)
   ON_MESSAGE(WM_APP_DONE, &CPLPFidoExampleDlg::OnAppDone)
   ON_WM_GETMINMAXINFO()
+  ON_WM_DRAWITEM()
 END_MESSAGE_MAP()
 
 BOOL CPLPFidoExampleDlg::OnInitDialog()
@@ -50,6 +55,14 @@ BOOL CPLPFidoExampleDlg::OnInitDialog()
   CRect rc;
   GetWindowRect(&rc);
   m_minSize = rc.Size();
+
+  // Application icon for title bar, taskbar and Alt+Tab (LR_SHARED: released by the system)
+  HINSTANCE res = AfxGetResourceHandle();
+  SetIcon(static_cast<HICON>(::LoadImage(res, MAKEINTRESOURCE(IDR_MAINFRAME), IMAGE_ICON,
+    ::GetSystemMetrics(SM_CXICON), ::GetSystemMetrics(SM_CYICON), LR_SHARED)), TRUE);
+  SetIcon(static_cast<HICON>(::LoadImage(res, MAKEINTRESOURCE(IDR_MAINFRAME), IMAGE_ICON,
+    ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_SHARED)), FALSE);
+  LoadLogo();
 
   m_logFont.CreatePointFont(100, _T("Consolas"));
   m_editLog.SetFont(&m_logFont);
@@ -169,6 +182,45 @@ void CPLPFidoExampleDlg::UpdatePinField()
   std::string path = SelectedDevicePath();
   bool enable = IsDlgButtonChecked(IDC_CHECK_UV) == BST_CHECKED && !path.empty() && path != "windows://hello";
   GetDlgItem(IDC_EDIT_PIN)->EnableWindow(enable);
+}
+
+// The logo is embedded as PNG resource; CImage decodes PNG (via GDI+) from a memory stream
+void CPLPFidoExampleDlg::LoadLogo()
+{
+  HINSTANCE res = AfxGetResourceHandle();
+  HRSRC hRes = ::FindResource(res, MAKEINTRESOURCE(IDB_LOGO), _T("PNG"));
+  HGLOBAL hData = hRes ? ::LoadResource(res, hRes) : nullptr;
+  const BYTE* data = hData ? static_cast<const BYTE*>(::LockResource(hData)) : nullptr;
+  if (data == nullptr)
+  {
+    return;
+  }
+  IStream* stream = ::SHCreateMemStream(data, ::SizeofResource(res, hRes));
+  if (stream != nullptr)
+  {
+    m_logo.Load(stream);
+    stream->Release();
+  }
+}
+
+// Draws the logo square, top right in IDC_LOGO; HALFTONE keeps it smooth at any size / DPI
+void CPLPFidoExampleDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
+{
+  if (nIDCtl != IDC_LOGO || m_logo.IsNull())
+  {
+    CDialogEx::OnDrawItem(nIDCtl, lpDrawItemStruct);
+    return;
+  }
+  HDC hdc = lpDrawItemStruct->hDC;
+  CRect rc(lpDrawItemStruct->rcItem);
+  ::FillRect(hdc, &rc, ::GetSysColorBrush(COLOR_BTNFACE));
+
+  int size = rc.Width() < rc.Height() ? rc.Width() : rc.Height();
+  CRect target(rc.right - size, rc.top, rc.right, rc.top + size);
+  int oldMode = ::SetStretchBltMode(hdc, HALFTONE);
+  ::SetBrushOrgEx(hdc, 0, 0, nullptr);
+  m_logo.Draw(hdc, target);
+  ::SetStretchBltMode(hdc, oldMode);
 }
 
 void CPLPFidoExampleDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)

@@ -138,6 +138,10 @@
     <ResourceCompile Include="PLPFidoExample.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="res\PLP-FIDO-Example.ico" />
+    <Image Include="res\logo.png" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="vcpkg.json" />
     <None Include="README.md" />
   </ItemGroup>

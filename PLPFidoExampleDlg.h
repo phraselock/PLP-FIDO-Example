@@ -31,6 +31,7 @@ protected:
   afx_msg LRESULT OnAppLog(WPARAM wParam, LPARAM lParam);
   afx_msg LRESULT OnAppDone(WPARAM wParam, LPARAM lParam);
   afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
+  afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
   DECLARE_MESSAGE_MAP()
 
 private:
@@ -49,6 +50,7 @@ private:
   void RunAsync(std::function<FidoResult(const FidoDemo::LogFn&)> work);
   void ShowResult(const FidoResult& result);
   void SetBusy(bool busy);
+  void LoadLogo();
 
   CComboBox m_comboDevice;
   CEdit m_editLog;
@@ -59,6 +61,7 @@ private:
   BOOL m_roamingOnly = TRUE;
   BOOL m_requireUv = FALSE;
   CFont m_logFont;
+  CImage m_logo;    // PNG resource IDB_LOGO, drawn into IDC_LOGO
   CSize m_minSize;  // initial window size = minimum when resizing
 
   std::vector<FidoDevice> m_devices;

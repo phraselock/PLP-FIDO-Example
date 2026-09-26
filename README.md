@@ -444,6 +444,7 @@ libfido2's Windows Hello backend needs the full `clientDataJSON`
 | `FidoDemo.h/.cpp` | Runs the ceremonies step by step and narrates them in the log |
 | `PLPFidoExampleDlg.h/.cpp` | Dialog, runs FIDO operations on a worker thread |
 | `PLPFidoExample.h/.cpp` | `CWinApp`, calls `fido_init()` |
+| `res/` | Application icon and logo (PhraseLock) |
 | `vcpkg.json` | libfido2 dependency (vcpkg manifest) |
 
 ---
@@ -452,3 +453,6 @@ libfido2's Windows Hello backend needs the full `clientDataJSON`
 
 MIT - see [LICENSE](LICENSE). libfido2 (BSD-2-Clause), OpenSSL (Apache-2.0), libcbor (MIT), zlib (zlib) and
 nlohmann-json (MIT) are fetched by vcpkg and keep their own licenses.
+
+The PhraseLock name and logo (`res/`) are trademarks of iPoxo IT GmbH and are not covered by the
+MIT license.
