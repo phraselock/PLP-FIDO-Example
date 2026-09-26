@@ -1,8 +1,8 @@
 #pragma once
 
 // Data exchanged between the relying party (server) and the client, modelled after the objects
-// of the WebAuthn API. In a real deployment they travel as JSON over the network (e.g. to and from
-// plp-fido2); in this demo RelyingParty and the IAuthenticatorClient implementations run in the
+// of the WebAuthn API. When the relying party is an application's backend they travel as JSON over
+// the network; in this demo RelyingParty and the IAuthenticatorClient implementations run in the
 // same process, but only talk to each other through these structs.
 
 #include <cstdint>

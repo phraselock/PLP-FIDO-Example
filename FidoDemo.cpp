@@ -117,7 +117,7 @@ FidoResult FidoDemo::Register(const std::string& path, const std::string& rpId, 
     return fail({ "RP ID and user name are required", "RP ID and user name are required.", {} });
   }
 
-  // In a real deployment the options come from the server (e.g. plp-fido2 /register/start)
+  // In a real deployment the options come from the relying party, e.g. the application's backend
   log("[1/5] Server: create challenge and user handle");
   RegistrationOptions options = m_rp.BeginRegistration(rpId, userName, discoverable, requireUv);
   log("      rp.id          : " + options.rpId);
@@ -194,7 +194,7 @@ FidoResult FidoDemo::SignIn(const std::string& path, const std::string& rpId, co
       "Register first, or tick 'Discoverable credential' to sign in without allow list." });
   }
 
-  // In a real deployment the options come from the server (e.g. plp-fido2 /login/start)
+  // In a real deployment the options come from the relying party, e.g. the application's backend
   log("[1/5] Server: create challenge");
   AuthenticationOptions options = m_rp.BeginAuthentication(rpId, discoverable, requireUv);
   log("      rp.id          : " + options.rpId);
