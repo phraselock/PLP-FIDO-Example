@@ -445,3 +445,10 @@ libfido2's Windows Hello backend needs the full `clientDataJSON`
 | `PLPFidoExampleDlg.h/.cpp` | Dialog, runs FIDO operations on a worker thread |
 | `PLPFidoExample.h/.cpp` | `CWinApp`, calls `fido_init()` |
 | `vcpkg.json` | libfido2 dependency (vcpkg manifest) |
+
+---
+
+## License
+
+MIT - see [LICENSE](LICENSE). libfido2 (BSD-2-Clause), OpenSSL (Apache-2.0), libcbor (MIT), zlib (zlib) and
+nlohmann-json (MIT) are fetched by vcpkg and keep their own licenses.
