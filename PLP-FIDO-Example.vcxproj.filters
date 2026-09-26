@@ -15,13 +15,31 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
+    <ClInclude Include="AuthData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="targetver.h">
+    <ClInclude Include="ClientData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
+    <ClInclude Include="CredentialStore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Encoding.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Fido2Handles.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FidoDemo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IAuthenticatorClient.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ICredentialStore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LibFido2Client.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PLPFidoExample.h">
@@ -30,33 +48,33 @@
     <ClInclude Include="PLPFidoExampleDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AuthData.h">
+    <ClInclude Include="RelyingParty.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Encoding.h">
+    <ClInclude Include="WebAuthnTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FidoDemo.h">
+    <ClInclude Include="WindowsWebAuthnClient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ICredentialStore.h">
+    <ClInclude Include="framework.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CredentialStore.h">
+    <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="WinWebAuthn.h">
+    <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="PLPFidoExample.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="PLPFidoExampleDlg.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="AuthData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ClientData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CredentialStore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Encoding.cpp">
@@ -65,10 +83,19 @@
     <ClCompile Include="FidoDemo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CredentialStore.cpp">
+    <ClCompile Include="LibFido2Client.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="WinWebAuthn.cpp">
+    <ClCompile Include="PLPFidoExample.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PLPFidoExampleDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RelyingParty.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsWebAuthnClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

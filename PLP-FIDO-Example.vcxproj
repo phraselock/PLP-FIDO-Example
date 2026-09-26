@@ -104,26 +104,35 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h" />
-    <ClInclude Include="targetver.h" />
-    <ClInclude Include="resource.h" />
+    <ClInclude Include="AuthData.h" />
+    <ClInclude Include="ClientData.h" />
+    <ClInclude Include="CredentialStore.h" />
+    <ClInclude Include="Encoding.h" />
+    <ClInclude Include="Fido2Handles.h" />
+    <ClInclude Include="FidoDemo.h" />
+    <ClInclude Include="IAuthenticatorClient.h" />
+    <ClInclude Include="ICredentialStore.h" />
+    <ClInclude Include="LibFido2Client.h" />
     <ClInclude Include="PLPFidoExample.h" />
     <ClInclude Include="PLPFidoExampleDlg.h" />
-    <ClInclude Include="AuthData.h" />
-    <ClInclude Include="Encoding.h" />
-    <ClInclude Include="FidoDemo.h" />
-    <ClInclude Include="ICredentialStore.h" />
-    <ClInclude Include="CredentialStore.h" />
-    <ClInclude Include="WinWebAuthn.h" />
+    <ClInclude Include="RelyingParty.h" />
+    <ClInclude Include="WebAuthnTypes.h" />
+    <ClInclude Include="WindowsWebAuthnClient.h" />
+    <ClInclude Include="framework.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="PLPFidoExample.cpp" />
-    <ClCompile Include="PLPFidoExampleDlg.cpp" />
     <ClCompile Include="AuthData.cpp" />
+    <ClCompile Include="ClientData.cpp" />
+    <ClCompile Include="CredentialStore.cpp" />
     <ClCompile Include="Encoding.cpp" />
     <ClCompile Include="FidoDemo.cpp" />
-    <ClCompile Include="CredentialStore.cpp" />
-    <ClCompile Include="WinWebAuthn.cpp" />
+    <ClCompile Include="LibFido2Client.cpp" />
+    <ClCompile Include="PLPFidoExample.cpp" />
+    <ClCompile Include="PLPFidoExampleDlg.cpp" />
+    <ClCompile Include="RelyingParty.cpp" />
+    <ClCompile Include="WindowsWebAuthnClient.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="PLPFidoExample.rc" />

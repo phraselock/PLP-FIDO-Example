@@ -1,21 +1,27 @@
 #pragma once
 
-// Thin demo wrapper around libfido2 (https://developers.yubico.com/libfido2/).
-// Deliberately MFC-free: all strings are UTF-8 std::string, output goes through a log callback,
+// Runs the two WebAuthn ceremonies step by step and narrates them in the log:
+//
+//   Register:  [1] RelyingParty::BeginRegistration   server creates challenge + user handle
+//              [2] ClientData::Build                 client builds clientDataJSON
+//              [3] IAuthenticatorClient::MakeCredential  authenticator creates the credential
+//              [4] RelyingParty::VerifyRegistration  server checks the response
+//              [5] RelyingParty::StoreCredential     server saves the credential
+//
+//   Sign In:   the same with BeginAuthentication / GetAssertion / VerifyAssertion
+//
+// This class only wires the parts together - the WebAuthn logic lives in RelyingParty and the
+// IAuthenticatorClient implementations. MFC-free: UTF-8 strings, output through a log callback,
 // so every method can run on a worker thread.
 
 #include <cstdint>
-#include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "ICredentialStore.h"
-
-struct FidoDevice
-{
-  std::string path;   // e.g. "\\?\hid#vid_1050&pid_0407..." or "windows://hello"
-  std::string label;  // human readable, for the device combo box
-};
+#include "LibFido2Client.h"
+#include "RelyingParty.h"
 
 // Outcome of Register / SignIn, shown in the result dialog
 struct FidoResult
@@ -28,10 +34,12 @@ struct FidoResult
 class FidoDemo
 {
 public:
-  using LogFn = std::function<void(const std::string&)>;
+  using LogFn = ::LogFn;
 
   // Registered credentials are kept in (and read from) the given store; it must outlive this object
   explicit FidoDemo(ICredentialStore& store);
+
+  // --- device helpers (libfido2) ---
 
   // Wraps fido_init(); call once at startup
   static void Init();
@@ -44,8 +52,10 @@ public:
 
   static bool DeviceInfo(const std::string& path, const LogFn& log);
 
-  // roamingOnly only matters for "windows://hello": then webauthn.dll is called directly (WinWebAuthn)
-  // so that Windows offers security keys only, no Windows Hello platform authenticator.
+  // --- ceremonies ---
+  //
+  // roamingOnly only matters for "windows://hello": then webauthn.dll is called directly
+  // (WindowsWebAuthnClient) so that Windows offers security keys only, no Windows Hello.
   // requireUv: user verification (PIN / biometrics) required; otherwise touch only. The PIN argument is
   // only used for direct HID access - Windows collects the PIN in its own dialog.
 
@@ -59,5 +69,7 @@ public:
     bool discoverable, bool roamingOnly, bool requireUv, const LogFn& log);
 
 private:
-  ICredentialStore& m_store;
+  static std::unique_ptr<IAuthenticatorClient> CreateClient(const std::string& path, const std::string& pin, bool roamingOnly);
+
+  RelyingParty m_rp;
 };

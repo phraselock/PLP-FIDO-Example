@@ -59,7 +59,7 @@ signature counter, attestation certificate chain, signature) and end with a resu
   otherwise). With `windows://hello` Windows collects PIN/biometrics in its own dialog.
 - libfido2's Windows Hello backend always requests `WEBAUTHN_AUTHENTICATOR_ATTACHMENT_ANY` and
   has no option to change that. For *security keys only* the app therefore calls `webauthn.dll`
-  directly (`WinWebAuthn.cpp`, `WEBAUTHN_AUTHENTICATOR_ATTACHMENT_CROSS_PLATFORM`) and hands the raw
+  directly (`WindowsWebAuthnClient.cpp`, `WEBAUTHN_AUTHENTICATOR_ATTACHMENT_CROSS_PLATFORM`) and hands the raw
   authenticatorData / attestation / signature to libfido2 for parsing and verification.
 - libfido2's Windows Hello backend needs the full `clientDataJSON`
   (`fido_cred_set_clientdata` / `fido_assert_set_clientdata`), not just its hash.
@@ -91,12 +91,18 @@ edited by hand. Sign In with allow list therefore also works after a restart of 
 
 | File | Purpose |
 |------|---------|
-| `FidoDemo.h/.cpp` | All libfido2 code (MFC-free, UTF-8, log callback) |
+| `RelyingParty.h/.cpp` | Server side: challenges, verification of registration and sign-in, platform independent |
+| `IAuthenticatorClient.h` | Client side interface: MakeCredential / GetAssertion |
+| `LibFido2Client.h/.cpp` | Client via libfido2 (direct HID or libfido2's Windows Hello backend), device list and info |
+| `WindowsWebAuthnClient.h/.cpp` | Client via Windows WebAuthn API (`webauthn.dll`), security keys only |
+| `WebAuthnTypes.h` | Data exchanged between server and client (options, responses) |
+| `ClientData.h/.cpp` | Builds and hashes clientDataJSON |
+| `AuthData.h/.cpp` | Parses authenticatorData (rpIdHash, flags, signCount, AAGUID, credential id) |
 | `ICredentialStore.h` | Interface + `StoredCredential` for the relying party's credential storage |
 | `CredentialStore.h/.cpp` | `ICredentialStore` implementation: text file in `%APPDATA%` |
-| `WinWebAuthn.h/.cpp` | Direct `webauthn.dll` calls for the security-keys-only mode |
-| `AuthData.h/.cpp` | Parses authenticatorData (rpIdHash, flags, signCount, AAGUID, credential id) |
 | `Encoding.h/.cpp` | Hex and base64url |
+| `Fido2Handles.h` | RAII wrappers for libfido2 handles |
+| `FidoDemo.h/.cpp` | Runs the ceremonies step by step and narrates them in the log |
 | `PLPFidoExampleDlg.h/.cpp` | Dialog, runs FIDO operations on a worker thread |
 | `PLPFidoExample.h/.cpp` | `CWinApp`, calls `fido_init()` |
 | `vcpkg.json` | libfido2 dependency (vcpkg manifest) |

@@ -5,7 +5,7 @@
 
 #include <cstdio>
 
-#include "WinWebAuthn.h"
+#include "WindowsWebAuthnClient.h"
 
 namespace
 {
@@ -57,6 +57,43 @@ namespace
     }
   }
 
+  FidoError ApiError(const char* call, HRESULT hr)
+  {
+    std::string text = ErrorText(hr);
+    return { std::string(call) + ": " + text, text, {} };
+  }
+
+  std::string TransportName(DWORD transport)
+  {
+    std::string s;
+    auto add = [&s](const char* name) { s += s.empty() ? name : std::string(", ") + name; };
+    if (transport & WEBAUTHN_CTAP_TRANSPORT_USB)
+    {
+      add("USB");
+    }
+    if (transport & WEBAUTHN_CTAP_TRANSPORT_NFC)
+    {
+      add("NFC");
+    }
+    if (transport & WEBAUTHN_CTAP_TRANSPORT_BLE)
+    {
+      add("BLE");
+    }
+    if (transport & WEBAUTHN_CTAP_TRANSPORT_TEST)
+    {
+      add("TEST");
+    }
+    if (transport & WEBAUTHN_CTAP_TRANSPORT_INTERNAL)
+    {
+      add("INTERNAL (platform)");
+    }
+    if (transport & WEBAUTHN_CTAP_TRANSPORT_HYBRID)
+    {
+      add("HYBRID (phone)");
+    }
+    return s.empty() ? "unknown" : s;
+  }
+
   std::vector<uint8_t> Bytes(const BYTE* p, DWORD len)
   {
     return p ? std::vector<uint8_t>(p, p + len) : std::vector<uint8_t>{};
@@ -79,50 +116,29 @@ namespace
   }
 }
 
-uint32_t WinWebAuthn::ApiVersion()
+WindowsWebAuthnClient::WindowsWebAuthnClient(bool roamingOnly)
+  : m_roamingOnly(roamingOnly)
+{
+}
+
+uint32_t WindowsWebAuthnClient::ApiVersion()
 {
   return WebAuthNGetApiVersionNumber();
 }
 
-std::string WinWebAuthn::TransportName(uint32_t transport)
+std::string WindowsWebAuthnClient::Description() const
 {
-  std::string s;
-  auto add = [&s](const char* name) { s += s.empty() ? name : std::string(", ") + name; };
-  if (transport & WEBAUTHN_CTAP_TRANSPORT_USB)
-  {
-    add("USB");
-  }
-  if (transport & WEBAUTHN_CTAP_TRANSPORT_NFC)
-  {
-    add("NFC");
-  }
-  if (transport & WEBAUTHN_CTAP_TRANSPORT_BLE)
-  {
-    add("BLE");
-  }
-  if (transport & WEBAUTHN_CTAP_TRANSPORT_TEST)
-  {
-    add("TEST");
-  }
-  if (transport & WEBAUTHN_CTAP_TRANSPORT_INTERNAL)
-  {
-    add("INTERNAL (platform)");
-  }
-  if (transport & WEBAUTHN_CTAP_TRANSPORT_HYBRID)
-  {
-    add("HYBRID (phone)");
-  }
-  return s.empty() ? "unknown" : s;
+  return "windows://hello -> webauthn.dll directly (API v" + std::to_string(ApiVersion()) + ")" +
+    (m_roamingOnly ? ", security keys only" : "");
 }
 
-bool WinWebAuthn::MakeCredential(const std::string& rpId, const std::string& rpName, const std::vector<uint8_t>& userId,
-  const std::string& userName, const std::string& clientDataJson, bool discoverable, bool roamingOnly,
-  bool requireUv, Attestation& out, std::string& error)
+bool WindowsWebAuthnClient::MakeCredential(const RegistrationOptions& options, const std::string& clientDataJson,
+  RegistrationResponse& response, FidoError& error)
 {
-  std::wstring wRpId = ToWide(rpId);
-  std::wstring wRpName = ToWide(rpName);
-  std::wstring wUserName = ToWide(userName);
-  std::vector<BYTE> uid(userId.begin(), userId.end());
+  std::wstring wRpId = ToWide(options.rpId);
+  std::wstring wRpName = ToWide(options.rpName);
+  std::wstring wUserName = ToWide(options.userName);
+  std::vector<BYTE> uid(options.userId.begin(), options.userId.end());
   std::vector<BYTE> cd(clientDataJson.begin(), clientDataJson.end());
 
   WEBAUTHN_RP_ENTITY_INFORMATION rp{};
@@ -155,32 +171,35 @@ bool WinWebAuthn::MakeCredential(const std::string& rpId, const std::string& rpN
   WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS opt{};
   opt.dwVersion = WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS_VERSION_1;
   opt.dwTimeoutMilliseconds = TIMEOUT_MS;
-  opt.dwAuthenticatorAttachment = Attachment(roamingOnly);
-  opt.bRequireResidentKey = discoverable;
-  opt.dwUserVerificationRequirement = UserVerification(requireUv);
+  opt.dwAuthenticatorAttachment = Attachment(m_roamingOnly);
+  opt.bRequireResidentKey = options.residentKey;
+  opt.dwUserVerificationRequirement = UserVerification(options.userVerification);
   opt.dwAttestationConveyancePreference = WEBAUTHN_ATTESTATION_CONVEYANCE_PREFERENCE_DIRECT;
 
   PWEBAUTHN_CREDENTIAL_ATTESTATION att = nullptr;
   HRESULT hr = WebAuthNAuthenticatorMakeCredential(OwnerWindow(), &rp, &user, &algs, &clientData, &opt, &att);
   if (FAILED(hr))
   {
-    error = ErrorText(hr);
+    error = ApiError("WebAuthNAuthenticatorMakeCredential", hr);
     return false;
   }
 
-  out.format = ToUtf8(att->pwszFormatType);
-  out.authData = Bytes(att->pbAuthenticatorData, att->cbAuthenticatorData);
-  out.attStmt = Bytes(att->pbAttestation, att->cbAttestation);
-  out.credentialId = Bytes(att->pbCredentialId, att->cbCredentialId);
-  out.usedTransport = att->dwVersion >= WEBAUTHN_CREDENTIAL_ATTESTATION_VERSION_3 ? att->dwUsedTransport : 0;
+  response.clientDataJson = clientDataJson;
+  response.format = ToUtf8(att->pwszFormatType);
+  response.authData = Bytes(att->pbAuthenticatorData, att->cbAuthenticatorData);
+  response.attStmt = Bytes(att->pbAttestation, att->cbAttestation);
+  if (att->dwVersion >= WEBAUTHN_CREDENTIAL_ATTESTATION_VERSION_3 && att->dwUsedTransport != 0)
+  {
+    response.transport = TransportName(att->dwUsedTransport);
+  }
   WebAuthNFreeCredentialAttestation(att);
   return true;
 }
 
-bool WinWebAuthn::GetAssertion(const std::string& rpId, const std::string& clientDataJson,
-  const std::vector<std::vector<uint8_t>>& allowList, bool roamingOnly, bool requireUv, Assertion& out, std::string& error)
+bool WindowsWebAuthnClient::GetAssertion(const AuthenticationOptions& options, const std::string& clientDataJson,
+  std::vector<AssertionResponse>& responses, FidoError& error)
 {
-  std::wstring wRpId = ToWide(rpId);
+  std::wstring wRpId = ToWide(options.rpId);
   std::vector<BYTE> cd(clientDataJson.begin(), clientDataJson.end());
 
   WEBAUTHN_CLIENT_DATA clientData{};
@@ -190,7 +209,7 @@ bool WinWebAuthn::GetAssertion(const std::string& rpId, const std::string& clien
   clientData.pwszHashAlgId = WEBAUTHN_HASH_ALGORITHM_SHA_256;
 
   std::vector<WEBAUTHN_CREDENTIAL> creds;
-  for (const auto& id : allowList)
+  for (const auto& id : options.allowCredentials)
   {
     WEBAUTHN_CREDENTIAL c{};
     c.dwVersion = WEBAUTHN_CREDENTIAL_CURRENT_VERSION;
@@ -205,21 +224,25 @@ bool WinWebAuthn::GetAssertion(const std::string& rpId, const std::string& clien
   opt.dwTimeoutMilliseconds = TIMEOUT_MS;
   opt.CredentialList.cCredentials = static_cast<DWORD>(creds.size());
   opt.CredentialList.pCredentials = creds.empty() ? nullptr : creds.data();
-  opt.dwAuthenticatorAttachment = Attachment(roamingOnly);
-  opt.dwUserVerificationRequirement = UserVerification(requireUv);
+  opt.dwAuthenticatorAttachment = Attachment(m_roamingOnly);
+  opt.dwUserVerificationRequirement = UserVerification(options.userVerification);
 
   PWEBAUTHN_ASSERTION assertion = nullptr;
   HRESULT hr = WebAuthNAuthenticatorGetAssertion(OwnerWindow(), wRpId.c_str(), &clientData, &opt, &assertion);
   if (FAILED(hr))
   {
-    error = ErrorText(hr);
+    error = ApiError("WebAuthNAuthenticatorGetAssertion", hr);
     return false;
   }
 
-  out.authData = Bytes(assertion->pbAuthenticatorData, assertion->cbAuthenticatorData);
-  out.signature = Bytes(assertion->pbSignature, assertion->cbSignature);
-  out.credentialId = Bytes(assertion->Credential.pbId, assertion->Credential.cbId);
-  out.userId = Bytes(assertion->pbUserId, assertion->cbUserId);
+  // Windows lets the user pick one account, so there is always exactly one assertion
+  AssertionResponse a;
+  a.credentialId = Bytes(assertion->Credential.pbId, assertion->Credential.cbId);
+  a.clientDataJson = clientDataJson;
+  a.authData = Bytes(assertion->pbAuthenticatorData, assertion->cbAuthenticatorData);
+  a.signature = Bytes(assertion->pbSignature, assertion->cbSignature);
+  a.userHandle = Bytes(assertion->pbUserId, assertion->cbUserId);
+  responses.push_back(std::move(a));
   WebAuthNFreeAssertion(assertion);
   return true;
 }
