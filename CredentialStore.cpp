@@ -9,6 +9,7 @@
 #include <fstream>
 
 #include "CredentialStore.h"
+#include "Encoding.h"
 
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "ole32.lib")
@@ -29,6 +30,8 @@
 
 namespace fs = std::filesystem;
 
+using Encoding::FromHex;
+
 namespace
 {
   constexpr wchar_t STORE_DIR[] = L"PhraseLock\\PLP-FIDO-Example";
@@ -44,54 +47,6 @@ namespace
     "#   aaguid       authenticator model id (16 bytes, all zero if not disclosed)\n"
     "# signCount is the last signature counter seen (decimal) - it must increase on every sign-in,\n"
     "# otherwise the authenticator may have been cloned.\n";
-
-  std::string ToHex(const std::vector<uint8_t>& v)
-  {
-    static const char digits[] = "0123456789abcdef";
-    std::string s;
-    s.reserve(v.size() * 2);
-    for (uint8_t b : v)
-    {
-      s += digits[b >> 4];
-      s += digits[b & 0x0f];
-    }
-    return s;
-  }
-
-  bool FromHex(const std::string& s, std::vector<uint8_t>& out)
-  {
-    auto nibble = [](char c) -> int
-    {
-      if (c >= '0' && c <= '9')
-      {
-        return c - '0';
-      }
-      if (c >= 'a' && c <= 'f')
-      {
-        return c - 'a' + 10;
-      }
-      if (c >= 'A' && c <= 'F')
-      {
-        return c - 'A' + 10;
-      }
-      return -1;
-    };
-    if (s.size() % 2 != 0)
-    {
-      return false;
-    }
-    out.clear();
-    for (size_t i = 0; i < s.size(); i += 2)
-    {
-      int hi = nibble(s[i]), lo = nibble(s[i + 1]);
-      if (hi < 0 || lo < 0)
-      {
-        return false;
-      }
-      out.push_back(static_cast<uint8_t>((hi << 4) | lo));
-    }
-    return true;
-  }
 
   std::string Trim(const std::string& s)
   {
@@ -339,10 +294,10 @@ bool CredentialStore::Save() const
       out << "\n[credential]\n"
         << "rpId         = " << c.rpId << "\n"
         << "userName     = " << c.userName << "\n"
-        << "userId       = " << ToHex(c.userId) << "\n"
-        << "credentialId = " << ToHex(c.credentialId) << "\n"
-        << "publicKey    = " << ToHex(c.publicKey) << "\n"
-        << "aaguid       = " << ToHex(c.aaguid) << "\n"
+        << "userId       = " << Encoding::Hex(c.userId) << "\n"
+        << "credentialId = " << Encoding::Hex(c.credentialId) << "\n"
+        << "publicKey    = " << Encoding::Hex(c.publicKey) << "\n"
+        << "aaguid       = " << Encoding::Hex(c.aaguid) << "\n"
         << "signCount    = " << c.signCount << "\n"
         << "created      = " << c.created << "\n";
     }

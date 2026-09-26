@@ -109,6 +109,8 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="PLPFidoExample.h" />
     <ClInclude Include="PLPFidoExampleDlg.h" />
+    <ClInclude Include="AuthData.h" />
+    <ClInclude Include="Encoding.h" />
     <ClInclude Include="FidoDemo.h" />
     <ClInclude Include="ICredentialStore.h" />
     <ClInclude Include="CredentialStore.h" />
@@ -117,6 +119,8 @@
   <ItemGroup>
     <ClCompile Include="PLPFidoExample.cpp" />
     <ClCompile Include="PLPFidoExampleDlg.cpp" />
+    <ClCompile Include="AuthData.cpp" />
+    <ClCompile Include="Encoding.cpp" />
     <ClCompile Include="FidoDemo.cpp" />
     <ClCompile Include="CredentialStore.cpp" />
     <ClCompile Include="WinWebAuthn.cpp" />

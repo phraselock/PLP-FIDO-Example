@@ -1,7 +1,6 @@
 // libfido2 pulls in OpenSSL headers - include them before <windows.h> to avoid wincrypt macro clashes
 #include <fido.h>
 #include <fido/es256.h>
-#include <openssl/sha.h>
 #include <openssl/x509.h>
 
 #define WIN32_LEAN_AND_MEAN
@@ -15,6 +14,8 @@
 #include <memory>
 #include <optional>
 
+#include "AuthData.h"
+#include "Encoding.h"
 #include "FidoDemo.h"
 #include "WinWebAuthn.h"
 
@@ -43,23 +44,8 @@ namespace
 
   // --- small formatting helpers ---
 
-  std::string Hex(const unsigned char* p, size_t len)
-  {
-    static const char digits[] = "0123456789abcdef";
-    std::string s;
-    s.reserve(len * 2);
-    for (size_t i = 0; i < len; i++)
-    {
-      s += digits[p[i] >> 4];
-      s += digits[p[i] & 0x0f];
-    }
-    return s;
-  }
-
-  std::string Hex(const std::vector<uint8_t>& v)
-  {
-    return Hex(v.data(), v.size());
-  }
+  using Encoding::Base64Url;
+  using Encoding::Hex;
 
   // Abbreviated hex for the result dialog: "3f2a1b9c...e0d1 (64 bytes)"
   std::string ShortHex(const std::vector<uint8_t>& v)
@@ -71,41 +57,11 @@ namespace
     return Hex(v.data(), 8) + "..." + Hex(v.data() + v.size() - 2, 2) + " (" + std::to_string(v.size()) + " bytes)";
   }
 
-  std::string Base64Url(const std::vector<uint8_t>& data)
-  {
-    static const char tbl[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    std::string out;
-    size_t i = 0;
-    for (; i + 2 < data.size(); i += 3)
-    {
-      uint32_t n = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2];
-      out += tbl[(n >> 18) & 63]; out += tbl[(n >> 12) & 63]; out += tbl[(n >> 6) & 63]; out += tbl[n & 63];
-    }
-    if (data.size() - i == 1)
-    {
-      uint32_t n = data[i] << 16;
-      out += tbl[(n >> 18) & 63]; out += tbl[(n >> 12) & 63];
-    }
-    else if (data.size() - i == 2)
-    {
-      uint32_t n = (data[i] << 16) | (data[i + 1] << 8);
-      out += tbl[(n >> 18) & 63]; out += tbl[(n >> 12) & 63]; out += tbl[(n >> 6) & 63];
-    }
-    return out;  // no padding, as required by WebAuthn
-  }
-
   std::vector<uint8_t> RandomBytes(size_t len)
   {
     std::vector<uint8_t> buf(len);
     BCryptGenRandom(nullptr, buf.data(), static_cast<ULONG>(len), BCRYPT_USE_SYSTEM_PREFERRED_RNG);
     return buf;
-  }
-
-  std::vector<uint8_t> Sha256(const std::string& s)
-  {
-    std::vector<uint8_t> out(SHA256_DIGEST_LENGTH);
-    SHA256(reinterpret_cast<const unsigned char*>(s.data()), s.size(), out.data());
-    return out;
   }
 
   std::string Seconds(Clock::time_point start)
@@ -212,17 +168,6 @@ namespace
     return path == WINHELLO_PATH ? FIDO_OPT_FALSE : FIDO_OPT_OMIT;
   }
 
-  // authenticatorData flags: UP = user present (touch), UV = user verified (PIN / biometrics),
-  // BE/BS = backup eligible/state (synced passkeys), AT = attested credential data, ED = extensions
-  std::string FlagsText(uint8_t flags)
-  {
-    char buf[80];
-    snprintf(buf, sizeof(buf), "0x%02x  UP=%d UV=%d BE=%d BS=%d AT=%d ED=%d", flags,
-      (flags & 0x01) != 0, (flags & 0x04) != 0, (flags & 0x08) != 0, (flags & 0x10) != 0,
-      (flags & 0x40) != 0, (flags & 0x80) != 0);
-    return buf;
-  }
-
   std::string PinHint(int r, bool requireUv, const std::string& pin)
   {
     if (r == FIDO_ERR_PIN_REQUIRED)
@@ -250,22 +195,21 @@ namespace
     return "direct HID: " + path;
   }
 
-  // Logs authenticatorData = rpIdHash(32) | flags(1) | signCount(4) | [attestedCredentialData] | [extensions]
-  // and checks rpIdHash against SHA-256(rpId), as a relying party must
-  bool LogAuthData(const unsigned char* ad, size_t len, const std::string& rpId, const FidoDemo::LogFn& log)
+  // Logs authenticatorData and checks rpIdHash against SHA-256(rpId), as a relying party must
+  bool LogAuthData(const unsigned char* data, size_t len, const std::string& rpId, const FidoDemo::LogFn& log)
   {
     log("      authData       : " + std::to_string(len) + " bytes");
-    if (ad == nullptr || len < 37)
+    std::optional<AuthData> ad = AuthData::Parse(data, len);
+    if (!ad)
     {
       log("      authData too short");
       return false;
     }
-    std::vector<uint8_t> expected = Sha256(rpId);
-    bool match = memcmp(ad, expected.data(), expected.size()) == 0;
-    log("      rpIdHash       : " + Hex(ad, 32));
+    bool match = ad->RpIdHashMatches(rpId);
+    log("      rpIdHash       : " + Hex(ad->rpIdHash));
     log(std::string("                       ") + (match ? "== " : "!= ") + "SHA-256(\"" + rpId + "\")  -> " +
       (match ? "OK" : "MISMATCH"));
-    log("      flags          : " + FlagsText(ad[32]));
+    log("      flags          : " + ad->FlagsText());
     return match;
   }
 

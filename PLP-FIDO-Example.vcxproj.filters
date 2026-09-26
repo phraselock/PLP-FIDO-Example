@@ -30,6 +30,12 @@
     <ClInclude Include="PLPFidoExampleDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AuthData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Encoding.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="FidoDemo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -48,6 +54,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PLPFidoExampleDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AuthData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Encoding.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FidoDemo.cpp">

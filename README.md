@@ -95,6 +95,8 @@ edited by hand. Sign In with allow list therefore also works after a restart of 
 | `ICredentialStore.h` | Interface + `StoredCredential` for the relying party's credential storage |
 | `CredentialStore.h/.cpp` | `ICredentialStore` implementation: text file in `%APPDATA%` |
 | `WinWebAuthn.h/.cpp` | Direct `webauthn.dll` calls for the security-keys-only mode |
+| `AuthData.h/.cpp` | Parses authenticatorData (rpIdHash, flags, signCount, AAGUID, credential id) |
+| `Encoding.h/.cpp` | Hex and base64url |
 | `PLPFidoExampleDlg.h/.cpp` | Dialog, runs FIDO operations on a worker thread |
 | `PLPFidoExample.h/.cpp` | `CWinApp`, calls `fido_init()` |
 | `vcpkg.json` | libfido2 dependency (vcpkg manifest) |
