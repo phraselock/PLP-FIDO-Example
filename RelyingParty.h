@@ -43,7 +43,7 @@ public:
   RegistrationOptions BeginRegistration(const std::string& rpId, const std::string& userName,
     bool residentKey, bool userVerification) const;
 
-  // Step 4: rpIdHash, flags, attestation signature
+  // Step 4: clientDataJSON (type, challenge, origin), rpIdHash, flags, attestation signature
   bool VerifyRegistration(const RegistrationOptions& options, const RegistrationResponse& response,
     const LogFn& log, RegistrationResult& result, FidoError& error) const;
 
@@ -58,10 +58,14 @@ public:
   // Step 1: random challenge; allow list from the store unless a discoverable credential is requested
   AuthenticationOptions BeginAuthentication(const std::string& rpId, bool discoverable, bool userVerification) const;
 
-  // Step 4 for one assertion: known credential, rpIdHash, flags, signature counter, signature.
+  // Step 4 for one assertion: known credential, clientDataJSON, rpIdHash, flags, signature counter, signature.
   // Updates the stored signature counter on success.
   bool VerifyAssertion(const AuthenticationOptions& options, const AssertionResponse& response,
     const LogFn& log, AuthenticationResult& result, FidoError& error);
+
+  // The origin clientDataJSON must contain. A web server knows its own origin; this demo acts as its
+  // own website and derives it from the RP ID (the client side does the same, see FidoDemo).
+  static std::string ExpectedOrigin(const std::string& rpId);
 
   std::string StoreLocation() const;
   size_t StoreCount() const;

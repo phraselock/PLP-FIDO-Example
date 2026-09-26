@@ -7,6 +7,8 @@
 #include <ctime>
 #include <optional>
 
+#include <nlohmann/json.hpp>
+
 #include "AuthData.h"
 #include "ClientData.h"
 #include "Encoding.h"
@@ -77,6 +79,57 @@ namespace
   {
     return { "parsing the authenticator response: " + ErrorText(r), "Could not parse the authenticator response: " + ErrorText(r), {} };
   }
+
+  // The signatures only prove that clientDataJSON was not altered - what it says must be checked here:
+  //   type      "webauthn.create" / "webauthn.get" - a sign-in response cannot pass as a registration
+  //   challenge the one issued for *this* request   - an old, recorded response cannot be replayed
+  //   origin    the site the user actually talked to - responses relayed from a phishing site fail
+  bool CheckClientData(const std::string& clientDataJson, const char* expectedType, const std::vector<uint8_t>& challenge,
+    const std::string& expectedOrigin, const LogFn& log, FidoError& error)
+  {
+    nlohmann::json cd = nlohmann::json::parse(clientDataJson, nullptr, false);  // false: no exceptions
+    if (cd.is_discarded() || !cd.is_object())
+    {
+      error = { "clientDataJSON is not a JSON object", "The client data could not be read.", {} };
+      return false;
+    }
+    auto field = [&cd](const char* key) -> std::string
+    {
+      auto it = cd.find(key);
+      return (it != cd.end() && it->is_string()) ? it->get<std::string>() : std::string();
+    };
+    std::string type = field("type");
+    std::string challengeB64 = field("challenge");
+    std::string origin = field("origin");
+
+    // base64url without padding is canonical, so comparing the encoded strings is sufficient
+    bool typeOk = type == expectedType;
+    bool challengeOk = challengeB64 == Encoding::Base64Url(challenge);
+    bool originOk = origin == expectedOrigin;
+    log("      clientData     : type " + type + (typeOk ? " OK" : " MISMATCH") +
+      ", challenge " + (challengeOk ? "OK" : "MISMATCH") +
+      ", origin " + origin + (originOk ? " OK" : " MISMATCH"));
+
+    if (!typeOk)
+    {
+      error = { "clientDataJSON type is '" + type + "', expected '" + expectedType + "'",
+        "The response is of the wrong type ('" + type + "' instead of '" + expectedType + "').", {} };
+      return false;
+    }
+    if (!challengeOk)
+    {
+      error = { "challenge in clientDataJSON does not match the one issued for this request",
+        "The response does not belong to this request (challenge mismatch) - possibly a replayed response.", {} };
+      return false;
+    }
+    if (!originOk)
+    {
+      error = { "origin '" + origin + "' in clientDataJSON, expected '" + expectedOrigin + "'",
+        "The response was created for a different origin (" + origin + ") - possibly a phishing site.", {} };
+      return false;
+    }
+    return true;
+  }
 }
 
 RelyingParty::RelyingParty(ICredentialStore& store, std::string rpName)
@@ -102,8 +155,13 @@ RegistrationOptions RelyingParty::BeginRegistration(const std::string& rpId, con
 bool RelyingParty::VerifyRegistration(const RegistrationOptions& options, const RegistrationResponse& response,
   const LogFn& log, RegistrationResult& result, FidoError& error) const
 {
+  if (!CheckClientData(response.clientDataJson, ClientData::TYPE_CREATE, options.challenge, ExpectedOrigin(options.rpId), log, error))
+  {
+    return false;
+  }
+
   // libfido2 does the parsing (COSE public key, attestation statement) and the signature check;
-  // the expected values - challenge via clientDataJSON, RP ID, user verification - come from the options
+  // the expected values - RP ID, user verification - come from the options
   CredPtr cred(fido_cred_new());
   int r;
   if ((r = fido_cred_set_type(cred.get(), COSE_ES256)) != FIDO_OK ||
@@ -235,25 +293,30 @@ bool RelyingParty::VerifyAssertion(const AuthenticationOptions& options, const A
     log("      user.name      : " + response.userName + "  (returned by the authenticator)");
   }
 
+  if (!CheckClientData(response.clientDataJson, ClientData::TYPE_GET, options.challenge, ExpectedOrigin(options.rpId), log, error))
+  {
+    return false;
+  }
+
   // libfido2 checks the signature (and the UP/UV flags requested here) against the stored public key
-  AssertPtr assert(fido_assert_new());
+  AssertPtr assertion(fido_assert_new());
   int r;
-  if ((r = fido_assert_set_clientdata(assert.get(), reinterpret_cast<const unsigned char*>(response.clientDataJson.data()), response.clientDataJson.size())) != FIDO_OK ||
-    (r = fido_assert_set_rp(assert.get(), options.rpId.c_str())) != FIDO_OK ||
-    (r = fido_assert_set_up(assert.get(), FIDO_OPT_TRUE)) != FIDO_OK ||
+  if ((r = fido_assert_set_clientdata(assertion.get(), reinterpret_cast<const unsigned char*>(response.clientDataJson.data()), response.clientDataJson.size())) != FIDO_OK ||
+    (r = fido_assert_set_rp(assertion.get(), options.rpId.c_str())) != FIDO_OK ||
+    (r = fido_assert_set_up(assertion.get(), FIDO_OPT_TRUE)) != FIDO_OK ||
     // uv=true also makes fido_assert_verify() reject assertions without the UV flag
-    (r = fido_assert_set_uv(assert.get(), options.userVerification ? FIDO_OPT_TRUE : FIDO_OPT_OMIT)) != FIDO_OK ||
-    (r = fido_assert_set_count(assert.get(), 1)) != FIDO_OK ||
-    (r = fido_assert_set_authdata_raw(assert.get(), 0, response.authData.data(), response.authData.size())) != FIDO_OK ||
-    (r = fido_assert_set_sig(assert.get(), 0, response.signature.data(), response.signature.size())) != FIDO_OK)
+    (r = fido_assert_set_uv(assertion.get(), options.userVerification ? FIDO_OPT_TRUE : FIDO_OPT_OMIT)) != FIDO_OK ||
+    (r = fido_assert_set_count(assertion.get(), 1)) != FIDO_OK ||
+    (r = fido_assert_set_authdata_raw(assertion.get(), 0, response.authData.data(), response.authData.size())) != FIDO_OK ||
+    (r = fido_assert_set_sig(assertion.get(), 0, response.signature.data(), response.signature.size())) != FIDO_OK)
   {
     error = ParseError(r);
     return false;
   }
 
   bool rpOk = LogAuthData(response.authData, options.rpId, log);
-  uint8_t flags = fido_assert_flags(assert.get(), 0);
-  uint32_t count = fido_assert_sigcount(assert.get(), 0);
+  uint8_t flags = fido_assert_flags(assertion.get(), 0);
+  uint32_t count = fido_assert_sigcount(assertion.get(), 0);
 
   if (!match)
   {
@@ -292,7 +355,7 @@ bool RelyingParty::VerifyAssertion(const AuthenticationOptions& options, const A
   // Verify the signature over authData || clientDataHash with the public key stored at registration
   Es256Ptr pk(es256_pk_new());
   if ((r = es256_pk_from_ptr(pk.get(), match->publicKey.data(), match->publicKey.size())) != FIDO_OK ||
-    (r = fido_assert_verify(assert.get(), 0, COSE_ES256, pk.get())) != FIDO_OK)
+    (r = fido_assert_verify(assertion.get(), 0, COSE_ES256, pk.get())) != FIDO_OK)
   {
     log("      verification   : INVALID - " + ErrorText(r));
     bool uvMissing = options.userVerification && !(flags & AuthData::FLAG_UV);
@@ -311,6 +374,11 @@ bool RelyingParty::VerifyAssertion(const AuthenticationOptions& options, const A
   result.signCount = count;
   result.userVerified = (flags & AuthData::FLAG_UV) != 0;
   return true;
+}
+
+std::string RelyingParty::ExpectedOrigin(const std::string& rpId)
+{
+  return "https://" + rpId;
 }
 
 std::string RelyingParty::StoreLocation() const

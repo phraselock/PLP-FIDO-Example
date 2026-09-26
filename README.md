@@ -74,8 +74,8 @@ itself.
 
 ## A registration and a sign-in, step by step
 
-The log below is a real run against a security key (`windows://hello`, *security keys only*,
-touch only). Long hex values are shortened with `…`.
+The logs below are real runs against a security key (`windows://hello`, *security keys only*,
+touch only). In the sign-in log long hex values are shortened with `…`.
 
 ### Registration
 
@@ -87,8 +87,8 @@ touch only). Long hex values are shortened with `…`.
 [1/5] Server: create challenge and user handle
       rp.id          : security.mycompany.com
       user.name      : jane.dow@mycompany.com
-      user.id        : 40fffb0f009b22851e4b1e36ae152239ee217b6d5bcf5e17a999ba998dff6050
-      challenge      : FRysVE0akNehMZGuZAIwMP71SzF5mrxQqgfn6fPwxgM  (32 random bytes)
+      user.id        : f89149ec5cff248ee2e284506981f8b0f89719f4e9702a50d795d04d8d3c8076
+      challenge      : yqHO2QPbKCTMq96KQt0X_nIQaqUCKJ7IxZbDTEeXjjw  (32 random bytes)
 ```
 The server creates a random **challenge** and a random **user handle** (`user.id`). The user
 handle is not the user name - it is an opaque identifier the authenticator stores with a
@@ -96,8 +96,8 @@ discoverable credential. A real server keeps both in the user's session.
 
 ```
 [2/5] Client: build clientDataJSON and hash it
-      clientDataJSON : {"type":"webauthn.create","challenge":"FRysVE0a…","origin":"https://security.mycompany.com","crossOrigin":false}
-      clientDataHash : 67784737e77660460e8e5e4f26150cc6491d5537e30ad12241d97eb35ab6fd2b  (SHA-256)
+      clientDataJSON : {"type":"webauthn.create","challenge":"yqHO2QPbKCTMq96KQt0X_nIQaqUCKJ7IxZbDTEeXjjw","origin":"https://security.mycompany.com","crossOrigin":false}
+      clientDataHash : 7ceb6a7b8add50f8cac401adecf6616e29a21523469e0d20c144a7404a92abeb  (SHA-256)
 ```
 The client wraps the challenge and the **origin** it is talking to into `clientDataJSON`. The
 authenticator only ever sees its SHA-256 hash - but because it signs that hash, the response is
@@ -106,23 +106,24 @@ bound to this challenge and this origin (phishing protection).
 ```
 [3/5] Authenticator: makeCredential
       >>> Touch your authenticator ...
-      done after 5.4 s, transport: USB
+      done after 4.9 s, transport: USB
 ```
 The authenticator creates a new key pair for `security.mycompany.com` after the user touched it
 (and entered the PIN if required).
 
 ```
 [4/5] Server: parse and verify the response
+      clientData     : type webauthn.create OK, challenge OK, origin https://security.mycompany.com OK
       authData       : 202 bytes
       rpIdHash       : f6b7c2ceec588edd0f69e2ce394a2cfa87609f111001f7c2bf135ffd9e5507f4
                        == SHA-256("security.mycompany.com")  -> OK
       flags          : 0x45  UP=1 UV=1 BE=0 BS=0 AT=1 ED=0
-      signCount      : 126
+      signCount      : 38
       AAGUID         : e86f75809198561be10b6e17443ec544
-      credential id  : 70 bytes  b5505372c425fab3cfba7121eef8…7e000000
+      credential id  : 70 bytes  daf6359fc141315abfe19b4265ec03716ccfb6a31106ab1713e46b49043abbd13207f6b7c2ceec588edd0f69e2ce394a2cfa87609f111001f7c2bf135ffd9e5507f426000000
       public key     : ES256 (ECDSA P-256)
-                       x = 4ddc6c1aa220eb433975f6460515c3ca9e1eb61fdfcd67811753e8d90b9f0b8a
-                       y = b0ef00f5bfa5595b1f4f12746467f456e4773ad0ea988c84b7ac008f8b70dc68
+                       x = 5709cdf8ed9b1cafde204c927df4344059008cd07beefce8b8dab10f27196c3b
+                       y = 5b8b876154287694e3193e5de89b0116817f7a4e18a319690328e1096591f33a
       attestation    : packed, 1 certificate(s)
                        [0] subject: /C=AT/ST=SZG/L=Salzburg/OU=Authenticator Attestation/O=iPoxo IT GmbH/CN=PhraseLock Attestation v1.0
                            issuer : /C=AT/ST=SZG/L=Salzburg/OU=R&D/O=iPoxo IT GmbH/CN=PhraseLock Attestation CA v1.0/serialNumber=ca.0003-2026.03.14
@@ -132,6 +133,8 @@ The authenticator creates a new key pair for `security.mycompany.com` after the 
 The response consists of **authenticatorData** (see [`AuthData.h`](AuthData.h) for the byte
 layout) and an **attestation statement**:
 
+- `clientData`: the server reads `clientDataJSON` and compares `type`, `challenge` and `origin` with
+  what it expects for *this* request - the signatures alone only prove the JSON was not altered.
 - `rpIdHash` must equal SHA-256 of the RP ID - otherwise the credential was made for another site.
 - `flags`: `UP` user present (touched), `UV` user verified (PIN / biometrics), `AT` attested
   credential data follows, `BE`/`BS` backup eligible / backed up (synced passkeys), `ED` extensions.
@@ -144,7 +147,7 @@ layout) and an **attestation statement**:
 
 ```
 [5/5] Server: store credential for 'jane.dow@mycompany.com'
-      saved to       : C:\Users\…\AppData\Roaming\PhraseLock\PLP-FIDO-Example\credentials.txt  (3 credential(s))
+      saved to       : C:\Users\…\AppData\Roaming\PhraseLock\PLP-FIDO-Example\credentials.txt  (9 credential(s))
 Registration OK.
 ```
 
@@ -176,6 +179,7 @@ account itself (passkey sign-in without a user name).
     assertion [0]
       credential id  : b5505372c425fab3cfba7121eef8…7e000000  -> 'jane.dow@mycompany.com'
       user.id        : 40fffb0f009b22851e4b1e36ae152239ee217b6d5bcf5e17a999ba998dff6050
+      clientData     : type webauthn.get OK, challenge OK, origin https://security.mycompany.com OK
       authData       : 37 bytes
       rpIdHash       : f6b7c2ceec588edd0f69e2ce394a2cfa87609f111001f7c2bf135ffd9e5507f4
                        == SHA-256("security.mycompany.com")  -> OK
@@ -187,7 +191,8 @@ account itself (passkey sign-in without a user name).
 [5/5] Server: user authenticated
 Sign-in OK - signed in as 'jane.dow@mycompany.com'.
 ```
-The server looks up the credential id, checks `rpIdHash` and the flags, compares the **signature
+The server looks up the credential id, checks `clientDataJSON` (a recorded old response would fail
+the challenge check), `rpIdHash` and the flags, compares the **signature
 counter** with the stored value (a counter that does not increase hints at a cloned
 authenticator) and finally verifies the **signature** over `authData || clientDataHash` with the
 public key from the registration. That signature is the actual proof of possession of the
@@ -222,7 +227,7 @@ the responses of the other two paths.
 |-------|-----|-------|
 | `rpIdHash == SHA-256(rpId)` | Response was made for this site, not for another one | `AuthData::RpIdHashMatches`, `RelyingParty` |
 | `clientDataJSON` unchanged | The signatures cover `clientDataHash`, so the JSON cannot be altered | libfido2 (`fido_cred_verify` / `fido_assert_verify`) |
-| Type, challenge, origin in `clientDataJSON` | Response belongs to this request and this site (no replay, no phishing) | **not implemented** - see [Limitations](#limitations-of-the-demo) |
+| `type`, `challenge`, `origin` in `clientDataJSON` | Right ceremony, response belongs to *this* request (no replay of recorded responses), made for this site (no relay from a phishing site) | `CheckClientData` in `RelyingParty.cpp` (parsed with nlohmann-json) |
 | `UP` flag | User was present (touched the key) | libfido2 (`fido_assert_set_up`) |
 | `UV` flag if user verification was required | PIN / biometrics were actually checked | `RelyingParty` + libfido2 (`fido_*_set_uv`) |
 | Attestation signature | The key was created by a genuine authenticator of the stated model | `fido_cred_verify` / `fido_cred_verify_self` |
@@ -324,9 +329,8 @@ a server rely only on what it *requires* - and check it (as `RelyingParty` does)
   certificate is **not** validated against a trusted root or the
   [FIDO Metadata Service](https://fidoalliance.org/metadata/). Any self-made CA would pass.
 - **ES256 only** (ECDSA P-256); no RS256 / EdDSA.
-- **No real server and no real origin**: the RP runs in the same process, the origin is simulated as
-  `https://<rp id>`, and `clientDataJSON` is not parsed by the server (its integrity is covered by
-  the signatures, but a real server must also compare type, challenge and origin).
+- **No real server and no real origin**: the RP runs in the same process, and the origin is
+  simulated as `https://<rp id>` on both sides (`RelyingParty::ExpectedOrigin`).
 - **No session handling**: the options of *Begin* are passed back into *Verify* directly.
 - The PIN field is only used for direct HID access.
 
@@ -356,6 +360,7 @@ libfido2 and its dependencies are resolved from `vcpkg.json` (manifest mode, pin
 | OpenSSL | 3.6.3 |
 | libcbor | 0.14.0 |
 | zlib | 1.3.2 |
+| nlohmann-json | 3.12.0 (header only, parses clientDataJSON) |
 
 The first build per platform takes several minutes because OpenSSL is compiled from source; later
 builds (also Debug/Release switches) reuse the installed packages in `vcpkg_installed\`. That

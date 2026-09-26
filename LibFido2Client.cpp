@@ -179,46 +179,46 @@ bool LibFido2Client::GetAssertion(const AuthenticationOptions& options, const st
     return false;
   }
 
-  AssertPtr assert(fido_assert_new());
+  AssertPtr assertion(fido_assert_new());
   int r;
-  if ((r = fido_assert_set_clientdata(assert.get(), reinterpret_cast<const unsigned char*>(clientDataJson.data()), clientDataJson.size())) != FIDO_OK ||
-    (r = fido_assert_set_rp(assert.get(), options.rpId.c_str())) != FIDO_OK ||
-    (r = fido_assert_set_up(assert.get(), FIDO_OPT_TRUE)) != FIDO_OK ||
-    (r = fido_assert_set_uv(assert.get(), UvOption(options.userVerification, m_path))) != FIDO_OK)
+  if ((r = fido_assert_set_clientdata(assertion.get(), reinterpret_cast<const unsigned char*>(clientDataJson.data()), clientDataJson.size())) != FIDO_OK ||
+    (r = fido_assert_set_rp(assertion.get(), options.rpId.c_str())) != FIDO_OK ||
+    (r = fido_assert_set_up(assertion.get(), FIDO_OPT_TRUE)) != FIDO_OK ||
+    (r = fido_assert_set_uv(assertion.get(), UvOption(options.userVerification, m_path))) != FIDO_OK)
   {
     error = { "setting up assertion: " + ErrorText(r), "Setting up the assertion failed: " + ErrorText(r), {} };
     return false;
   }
   for (const auto& id : options.allowCredentials)
   {
-    if ((r = fido_assert_allow_cred(assert.get(), id.data(), id.size())) != FIDO_OK)
+    if ((r = fido_assert_allow_cred(assertion.get(), id.data(), id.size())) != FIDO_OK)
     {
       error = { "fido_assert_allow_cred: " + ErrorText(r), "Setting up the allow list failed: " + ErrorText(r), {} };
       return false;
     }
   }
 
-  r = fido_dev_get_assert(dev.get(), assert.get(), PinFor(dev.get(), m_pin, options.userVerification));
+  r = fido_dev_get_assert(dev.get(), assertion.get(), PinFor(dev.get(), m_pin, options.userVerification));
   if (r != FIDO_OK)
   {
     error = LibError("fido_dev_get_assert", r, options.userVerification, m_pin);
     return false;
   }
 
-  for (size_t i = 0; i < fido_assert_count(assert.get()); i++)
+  for (size_t i = 0; i < fido_assert_count(assertion.get()); i++)
   {
     AssertionResponse a;
-    a.credentialId = Bytes(fido_assert_id_ptr(assert.get(), i), fido_assert_id_len(assert.get(), i));
+    a.credentialId = Bytes(fido_assert_id_ptr(assertion.get(), i), fido_assert_id_len(assertion.get(), i));
     // CTAP2.0 allows the authenticator to omit the credential id if the allow list had exactly one entry
     if (a.credentialId.empty() && options.allowCredentials.size() == 1)
     {
       a.credentialId = options.allowCredentials[0];
     }
     a.clientDataJson = clientDataJson;
-    a.authData = Bytes(fido_assert_authdata_raw_ptr(assert.get(), i), fido_assert_authdata_raw_len(assert.get(), i));
-    a.signature = Bytes(fido_assert_sig_ptr(assert.get(), i), fido_assert_sig_len(assert.get(), i));
-    a.userHandle = Bytes(fido_assert_user_id_ptr(assert.get(), i), fido_assert_user_id_len(assert.get(), i));
-    if (const char* name = fido_assert_user_name(assert.get(), i))
+    a.authData = Bytes(fido_assert_authdata_raw_ptr(assertion.get(), i), fido_assert_authdata_raw_len(assertion.get(), i));
+    a.signature = Bytes(fido_assert_sig_ptr(assertion.get(), i), fido_assert_sig_len(assertion.get(), i));
+    a.userHandle = Bytes(fido_assert_user_id_ptr(assertion.get(), i), fido_assert_user_id_len(assertion.get(), i));
+    if (const char* name = fido_assert_user_name(assertion.get(), i))
     {
       a.userName = name;
     }
