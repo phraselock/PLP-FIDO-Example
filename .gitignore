@@ -11,3 +11,4 @@ vcpkg_installed/
 *.VC.db
 *.VC.opendb
 .DS_Store
+dist/
