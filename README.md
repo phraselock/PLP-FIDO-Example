@@ -159,44 +159,57 @@ Registration OK.
   user verification : discouraged (touch only)
 [1/5] Server: create challenge
       rp.id          : security.mycompany.com
-      challenge      : mqVyqfZnQEuxVKPXxtuGwzdihkHITghciWv1aJjs-gI  (32 random bytes)
-      allowList      : 2 credential(s) registered for this RP
-                       d9267bcdf406ffca73f376aba1f5…7b000000  (jane.dow@mycompany.com)
-                       b5505372c425fab3cfba7121eef8…7e000000  (jane.dow@mycompany.com)
+      challenge      : BoUhDcanuhymuU32f05kvAHULuFpHRDrXlZTuTPkS3U  (32 random bytes)
+      allowList      : 9 credential(s) registered for this RP
+                       86bd8454ec34a723324026987c25…85000000  (jane.dow@mycompany.com)
+                       931169855065c0177e53a8195cce…88000000  (jane.dow@mycompany.com)
+                       127e2efa37008cfd398dcc3c806f…20000000  (jane.dow@mycompany.com)
+                       ce5a16c6347e5b7939e1af85bb3d…1a000000  (jane.dow@mycompany.com)
+                       235d58d1396c2bf0c244620b3c08…20000000  (jane.dow@mycompany.com)
+                       53ffffc543791ef8bc66d7ceec22…23000000  (jane.dow@mycompany.com)
+                       84712a68690fd97a3134995a84fb…26000000  (jane.dow@mycompany.com)
+                       2742db9d7651a0e01e0f3cb0640e…23000000  (jane.dow@mycompany.com)
+                       daf6359fc141315abfe19b4265ec…26000000  (jane.dow@mycompany.com)
 [2/5] Client: build clientDataJSON and hash it
-      clientDataJSON : {"type":"webauthn.get","challenge":"mqVyqfZn…","origin":"https://security.mycompany.com","crossOrigin":false}
-      clientDataHash : d1ac4dd7275f8ceb4030369d991492ea927dd20a91f3cb71268ad5d0ffdf54ba  (SHA-256)
+      clientDataJSON : {"type":"webauthn.get","challenge":"BoUhDcanuhymuU32f05kvAHULuFpHRDrXlZTuTPkS3U","origin":"https://security.mycompany.com","crossOrigin":false}
+      clientDataHash : 5935e2646f364eb1242599ea581e258731dd8eb89746c25bc05b0066a6a1d6b1  (SHA-256)
 [3/5] Authenticator: getAssertion
       >>> Touch your authenticator ...
-      done after 2.7 s, 1 assertion(s) returned
+      done after 2.2 s, 1 assertion(s) returned
 ```
 The server sends a new challenge plus the **allow list** - the credential ids it knows for this
-RP. With *Discoverable credential* ticked the allow list is empty and the authenticator picks the
-account itself (passkey sign-in without a user name).
+RP (here nine test registrations of the same user). With *Discoverable credential* ticked the
+allow list is empty and the authenticator picks the account itself (passkey sign-in without a
+user name).
 
 ```
 [4/5] Server: verify the assertion(s)
     assertion [0]
-      credential id  : b5505372c425fab3cfba7121eef8…7e000000  -> 'jane.dow@mycompany.com'
-      user.id        : 40fffb0f009b22851e4b1e36ae152239ee217b6d5bcf5e17a999ba998dff6050
+      credential id  : 127e2efa37008cfd398dcc3c806f…20000000  -> 'jane.dow@mycompany.com'
+      user.id        : c02c0bc6e51ac53797d4d8c1f8b1d252bf7815dd5034197617bf4038deea45ce
       clientData     : type webauthn.get OK, challenge OK, origin https://security.mycompany.com OK
       authData       : 37 bytes
       rpIdHash       : f6b7c2ceec588edd0f69e2ce394a2cfa87609f111001f7c2bf135ffd9e5507f4
                        == SHA-256("security.mycompany.com")  -> OK
       flags          : 0x01  UP=1 UV=0 BE=0 BS=0 AT=0 ED=0
-      signCount      : 128 (stored: 126)  -> increased, OK
+      signCount      : 42 (stored: 40)  -> increased, OK
       signed data    : authData (37 bytes) || clientDataHash (32 bytes)
-      signature      : ECDSA P-256 / SHA-256, 72 bytes DER  3046022100c6965e27…
+      signature      : ECDSA P-256 / SHA-256, 72 bytes DER  30460221009bdb321c0d330c28ae52c33548ee014a…18bdbb0ebe
       verification   : VALID with the public key stored at registration
 [5/5] Server: user authenticated
 Sign-in OK - signed in as 'jane.dow@mycompany.com'.
 ```
-The server looks up the credential id, checks `clientDataJSON` (a recorded old response would fail
-the challenge check), `rpIdHash` and the flags, compares the **signature
-counter** with the stored value (a counter that does not increase hints at a cloned
-authenticator) and finally verifies the **signature** over `authData || clientDataHash` with the
-public key from the registration. That signature is the actual proof of possession of the
-private key.
+The authenticator answered with **one** of the allowed credentials - here an older one
+(`127e2efa…`), not the one registered above; any credential in the allow list is acceptable. The
+server looks up that credential id, checks `clientDataJSON` (a recorded old response would fail
+the challenge check), `rpIdHash` and the flags, compares the **signature counter** with the stored
+value (a counter that does not increase hints at a cloned authenticator) and finally verifies the
+**signature** over `authData || clientDataHash` with the public key stored for that credential.
+That signature is the actual proof of possession of the private key.
+
+This authenticator uses one counter for all its credentials: 38 at the registration above, 42 at
+this sign-in with a different credential. The server only requires that the value increases per
+credential.
 
 Both ceremonies end with a result dialog (`CTaskDialog`) summarising the outcome - handy for demos.
 
@@ -282,12 +295,12 @@ all binary values (`userId`, `credentialId`, `publicKey`, `aaguid`) are hex:
 [credential]
 rpId         = security.mycompany.com
 userName     = jane.dow@mycompany.com
-userId       = 40fffb0f009b22851e4b1e36ae152239ee217b6d5bcf5e17a999ba998dff6050
-credentialId = b5505372c425fab3cfba7121eef8…7e000000
-publicKey    = 4ddc6c1a…b70dc68           (ES256 x || y, 64 bytes)
+userId       = f89149ec5cff248ee2e284506981f8b0f89719f4e9702a50d795d04d8d3c8076
+credentialId = daf6359fc141315abfe19b4265ec…26000000   (70 bytes)
+publicKey    = 5709cdf8ed9b1caf…0328e1096591f33a        (ES256 x || y, 64 bytes)
 aaguid       = e86f75809198561be10b6e17443ec544
-signCount    = 128
-created      = 2026-09-25 21:14:03
+signCount    = 38
+created      = 2026-09-26 10:12:47
 ```
 
 The file is written atomically (temp file + rename) after every change and can be inspected or
