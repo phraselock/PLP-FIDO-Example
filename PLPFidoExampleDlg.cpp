@@ -184,7 +184,7 @@ void CPLPFidoExampleDlg::UpdatePinField()
   GetDlgItem(IDC_EDIT_PIN)->EnableWindow(enable);
 }
 
-// The logo is embedded as PNG resource; CImage decodes PNG (via GDI+) from a memory stream
+// The logo is embedded as PNG resource and decoded by GDI+ from a memory stream
 void CPLPFidoExampleDlg::LoadLogo()
 {
   HINSTANCE res = AfxGetResourceHandle();
@@ -196,17 +196,25 @@ void CPLPFidoExampleDlg::LoadLogo()
     return;
   }
   IStream* stream = ::SHCreateMemStream(data, ::SizeofResource(res, hRes));
-  if (stream != nullptr)
+  if (stream == nullptr)
   {
-    m_logo.Load(stream);
-    stream->Release();
+    return;
   }
+  // A GDI+ bitmap keeps reading from its stream - clone it so the stream can be released
+  std::unique_ptr<Gdiplus::Bitmap> decoded(Gdiplus::Bitmap::FromStream(stream));
+  if (decoded && decoded->GetLastStatus() == Gdiplus::Ok)
+  {
+    m_logo.reset(decoded->Clone(0, 0, decoded->GetWidth(), decoded->GetHeight(), PixelFormat32bppPARGB));
+  }
+  decoded.reset();
+  stream->Release();
 }
 
-// Draws the logo square, top right in IDC_LOGO; HALFTONE keeps it smooth at any size / DPI
+// Draws the logo square with rounded corners, top right in IDC_LOGO. GDI+ scales it with bicubic
+// filtering and anti-aliases the corners, so it stays smooth at any size / DPI.
 void CPLPFidoExampleDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 {
-  if (nIDCtl != IDC_LOGO || m_logo.IsNull())
+  if (nIDCtl != IDC_LOGO || !m_logo)
   {
     CDialogEx::OnDrawItem(nIDCtl, lpDrawItemStruct);
     return;
@@ -216,11 +224,38 @@ void CPLPFidoExampleDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruc
   ::FillRect(hdc, &rc, ::GetSysColorBrush(COLOR_BTNFACE));
 
   int size = rc.Width() < rc.Height() ? rc.Width() : rc.Height();
-  CRect target(rc.right - size, rc.top, rc.right, rc.top + size);
-  int oldMode = ::SetStretchBltMode(hdc, HALFTONE);
-  ::SetBrushOrgEx(hdc, 0, 0, nullptr);
-  m_logo.Draw(hdc, target);
-  ::SetStretchBltMode(hdc, oldMode);
+  if (size <= 0)
+  {
+    return;
+  }
+
+  // 1. scale the logo to the target size in high quality
+  Gdiplus::Bitmap scaled(size, size, PixelFormat32bppPARGB);
+  {
+    Gdiplus::Graphics sg(&scaled);
+    sg.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
+    sg.SetPixelOffsetMode(Gdiplus::PixelOffsetModeHighQuality);
+    sg.DrawImage(m_logo.get(), 0, 0, size, size);
+  }
+
+  // 2. fill a rounded rectangle with it, anti-aliased
+  const Gdiplus::REAL x = static_cast<Gdiplus::REAL>(rc.right - size);
+  const Gdiplus::REAL y = static_cast<Gdiplus::REAL>(rc.top);
+  const Gdiplus::REAL s = static_cast<Gdiplus::REAL>(size);
+  const Gdiplus::REAL d = s * 0.36f;  // corner diameter
+  Gdiplus::GraphicsPath path;
+  path.AddArc(x, y, d, d, 180.0f, 90.0f);
+  path.AddArc(x + s - d, y, d, d, 270.0f, 90.0f);
+  path.AddArc(x + s - d, y + s - d, d, d, 0.0f, 90.0f);
+  path.AddArc(x, y + s - d, d, d, 90.0f, 90.0f);
+  path.CloseFigure();
+
+  Gdiplus::TextureBrush brush(&scaled);
+  brush.TranslateTransform(x, y);
+  Gdiplus::Graphics g(hdc);
+  g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+  g.SetPixelOffsetMode(Gdiplus::PixelOffsetModeHighQuality);
+  g.FillPath(&brush, &path);
 }
 
 void CPLPFidoExampleDlg::OnGetMinMaxInfo(MINMAXINFO* lpMMI)

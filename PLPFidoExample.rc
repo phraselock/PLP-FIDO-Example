@@ -87,30 +87,30 @@ EXSTYLE WS_EX_APPWINDOW
 CAPTION "PLP FIDO Example (libfido2)"
 FONT 10, "Segoe UI", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "Authenticator",IDC_STATIC,7,7,353,126
+    GROUPBOX        "Authenticator",IDC_STATIC,7,7,386,126
     LTEXT           "Device:",IDC_STATIC,16,24,44,10
-    COMBOBOX        IDC_COMBO_DEVICE,64,21,220,160,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Refresh",IDC_BTN_REFRESH,290,20,62,16
+    COMBOBOX        IDC_COMBO_DEVICE,64,21,252,160,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Refresh",IDC_BTN_REFRESH,322,20,62,16
     LTEXT           "RP ID:",IDC_STATIC,16,44,44,10
-    EDITTEXT        IDC_EDIT_RPID,64,41,120,15,ES_AUTOHSCROLL
-    LTEXT           "User:",IDC_STATIC,192,44,30,10
-    EDITTEXT        IDC_EDIT_USER,224,41,128,15,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_RPID,64,41,135,15,ES_AUTOHSCROLL
+    LTEXT           "User:",IDC_STATIC,207,44,30,10
+    EDITTEXT        IDC_EDIT_USER,239,41,145,15,ES_AUTOHSCROLL
     LTEXT           "PIN:",IDC_STATIC,16,63,44,10
     EDITTEXT        IDC_EDIT_PIN,64,60,90,15,ES_PASSWORD | ES_AUTOHSCROLL
-    LTEXT           "(direct USB only - Windows asks itself)",IDC_STATIC,162,63,190,10
+    LTEXT           "(direct USB access only - Windows asks itself)",IDC_STATIC,162,63,222,10
     CONTROL         "Discoverable credential (passkey / resident key)",IDC_CHECK_RK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,64,82,285,12
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,64,82,315,12
     CONTROL         "windows://hello: security keys only (no Windows Hello)",IDC_CHECK_ROAMING,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,64,98,285,12
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,64,98,315,12
     CONTROL         "Require PIN (user verification)",IDC_CHECK_UV,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,64,114,285,12
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,64,114,315,12
     PUSHBUTTON      "Device Info",IDC_BTN_INFO,7,140,76,20
     PUSHBUTTON      "Register",IDC_BTN_REGISTER,89,140,76,20
     PUSHBUTTON      "Sign In",IDC_BTN_SIGNIN,171,140,76,20
     PUSHBUTTON      "Clear Log",IDC_BTN_CLEAR,253,140,76,20
     PUSHBUTTON      "Close",IDCANCEL,357,140,76,20
     EDITTEXT        IDC_EDIT_LOG,7,167,426,156,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
-    CONTROL         "",IDC_LOGO,"Static",SS_OWNERDRAW,367,9,66,60
+    CONTROL         "",IDC_LOGO,"Static",SS_OWNERDRAW,400,9,33,30
 END
 
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <vector>
 
 #include "CredentialStore.h"
@@ -61,7 +62,7 @@ private:
   BOOL m_roamingOnly = TRUE;
   BOOL m_requireUv = FALSE;
   CFont m_logFont;
-  CImage m_logo;    // PNG resource IDB_LOGO, drawn into IDC_LOGO
+  std::unique_ptr<Gdiplus::Bitmap> m_logo;  // PNG resource IDB_LOGO, drawn into IDC_LOGO
   CSize m_minSize;  // initial window size = minimum when resizing
 
   std::vector<FidoDevice> m_devices;
