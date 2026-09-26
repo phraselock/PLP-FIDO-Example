@@ -71,6 +71,14 @@ BOOL CPLPFidoExampleDlg::OnInitDialog()
   return TRUE;
 }
 
+// Enter triggers IDOK, and the default CDialog::OnOK() closes the dialog - even while a worker thread is
+// running, which silently ends the app. There is no OK button, but the Enter that confirms Windows' own
+// PIN dialog can arrive here when that dialog closes (observed with an elevated process). Ignore it;
+// the dialog is closed via Close / Escape / the X only.
+void CPLPFidoExampleDlg::OnOK()
+{
+}
+
 void CPLPFidoExampleDlg::OnCancel()
 {
   // A worker thread still uses m_fido - don't tear down the dialog underneath it

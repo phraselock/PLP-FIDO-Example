@@ -18,6 +18,7 @@ public:
 protected:
   void DoDataExchange(CDataExchange* pDX) override;
   BOOL OnInitDialog() override;
+  void OnOK() override;
   void OnCancel() override;
 
   afx_msg void OnBnClickedRefresh();
